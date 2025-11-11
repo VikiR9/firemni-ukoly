@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
 
 /** ===== Typy ===== */
 type Priority = "Low" | "Medium" | "High" | "Urgent"; // interně EN, zobrazujeme CZ
@@ -130,6 +131,19 @@ export default function Home() {
       localStorage.setItem(LS_LANES, JSON.stringify(lanes));
     } catch {}
   }, [lanes]);
+
+  // Supabase test: pokusíme se načíst 1 řádek z tabulky `tasks` a výsledek vypíšeme do konzole
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data, error } = await supabase.from("tasks").select("*").limit(1);
+        if (error) console.error("❌ Supabase chyba:", error);
+        else console.log("✅ Supabase funguje:", data);
+      } catch (err) {
+        console.error("❌ Supabase chyba (catch):", err);
+      }
+    })();
+  }, []);
 
   /** Helper: lanesFor(employee) */
   const lanesFor = (emp: string) => lanes[emp] ?? DEFAULT_LANES;
