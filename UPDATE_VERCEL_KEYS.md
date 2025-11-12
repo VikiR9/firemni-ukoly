@@ -1,24 +1,24 @@
 # Aktualizace VAPID klíčů v Vercel
 
-## Nové VAPID klíče (vygenerovány 2025-11-12 pro Apple Push kompatibilitu)
+## Nové VAPID klíče (URL-safe base64 - vygenerovány 2025-11-12 pro Apple Push)
 
 Jdi do Vercel Dashboard → Settings → Environment Variables a aktualizuj tyto hodnoty:
 
 ### 1. NEXT_PUBLIC_VAPID_PUBLIC_KEY
 ```
-BJ8ClqJhb1tHseb28Xk0GE0ZaSxRcJVVNjRn2OqbP883dOgtUxy6OOHIC45y-mXwCW8hmjG7rsoN-AGBBIoUW2I
+BJ1jXJrTMoDWXMp9djMThujJKl-FHtmyp525LSwOEgwzDDB6p-SAFUFnIDRqkfCYmfAnm50N2tYhynIeqy65BAc
 ```
 - **Environment:** All Environments (Production, Preview, Development)
 
 ### 2. VAPID_PUBLIC_KEY
 ```
-BJ8ClqJhb1tHseb28Xk0GE0ZaSxRcJVVNjRn2OqbP883dOgtUxy6OOHIC45y-mXwCW8hmjG7rsoN-AGBBIoUW2I
+BJ1jXJrTMoDWXMp9djMThujJKl-FHtmyp525LSwOEgwzDDB6p-SAFUFnIDRqkfCYmfAnm50N2tYhynIeqy65BAc
 ```
 - **Environment:** All Environments
 
 ### 3. VAPID_PRIVATE_KEY
 ```
-HMnR_DWEC-rDdENQ5y5ZaFewW2vw9p-C90mt5F-vsb0
+k2T2gAXuO9T0npWMEPTGvlD3PtKZXiRDqM95NMtEWz8
 ```
 - **Environment:** All Environments
 - **⚠️ DŮLEŽITÉ:** Tento klíč je PRIVÁTNÍ - nikdy ho nesdílej veřejně!
