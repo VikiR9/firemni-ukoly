@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabaseClient";
 import webpush from "web-push";
+// @ts-ignore
+import { p256 } from '@noble/curves/p256';
 
 // Configure web-push with VAPID keys from environment variables
 if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
@@ -41,34 +43,68 @@ export async function POST(request: NextRequest) {
       url: "/",
     });
 
-    // Send push - use web-push library with explicit VAPID per request for Apple
-    const results = await Promise.allSettled(
-      subscriptions.map((sub) => {
-        const options: any = {
-          TTL: 2419200,
-          vapidDetails: {
-            subject: process.env.VAPID_SUBJECT || 'mailto:admin@example.com',
-            publicKey: process.env.VAPID_PUBLIC_KEY!,
-            privateKey: process.env.VAPID_PRIVATE_KEY!,
-          },
-        };
-        
-        // For Apple, add topic (required)
-        if (sub.endpoint.includes('web.push.apple.com')) {
-          options.topic = 'https://firemni-ukoly.vercel.app';
-        }
+    // Helper: Generate VAPID JWT with URL-safe base64 (for Apple Push)
+    const generateVapidJWT = (endpoint: string): string => {
+      const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY!;
+      const vapidSubject = process.env.VAPID_SUBJECT || 'mailto:admin@example.com';
+      
+      const url = new URL(endpoint);
+      const audience = `${url.protocol}//${url.host}`;
+      const exp = Math.floor(Date.now() / 1000) + 43200; // 12 hours
+      
+      // URL-safe base64 encode (no padding)
+      const base64url = (data: string) =>
+        Buffer.from(data).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+      
+      const header = base64url(JSON.stringify({ typ: 'JWT', alg: 'ES256' }));
+      const claims = base64url(JSON.stringify({ aud: audience, exp, sub: vapidSubject }));
+      const unsignedToken = `${header}.${claims}`;
+      
+      // Sign with ES256 using @noble/curves (URL-safe throughout)
+      const privateKeyBytes = Buffer.from(vapidPrivateKey.replace(/-/g, '+').replace(/_/g, '/'), 'base64');
+      const signature = p256.sign(Buffer.from(unsignedToken), privateKeyBytes).toCompactRawBytes();
+      const signatureB64 = Buffer.from(signature).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+      
+      return `${unsignedToken}.${signatureB64}`;
+    };
 
-        return webpush.sendNotification(
-          {
-            endpoint: sub.endpoint,
-            keys: {
-              p256dh: sub.p256dh,
-              auth: sub.auth,
-            },
+    // Send push - custom implementation for Apple to preserve URL-safe base64
+    const results = await Promise.allSettled(
+      subscriptions.map(async (sub) => {
+        const isApple = sub.endpoint.includes('web.push.apple.com');
+        
+        if (!isApple) {
+          // Non-Apple: use web-push library
+          return webpush.sendNotification(
+            { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+            payload,
+            { TTL: 2419200 }
+          );
+        }
+        
+        // Apple: Manual HTTP/2 request with URL-safe base64 preserved
+        const jwtToken = generateVapidJWT(sub.endpoint);
+        const vapidPublicKey = process.env.VAPID_PUBLIC_KEY!;
+        
+        const response = await fetch(sub.endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/octet-stream',
+            'Content-Encoding': 'aes128gcm',
+            'Authorization': `vapid t=${jwtToken}, k=${vapidPublicKey}`,
+            'Urgency': 'high',
+            'Topic': 'https://firemni-ukoly.vercel.app',
+            'TTL': '2419200',
           },
-          payload,
-          options
-        );
+          body: payload,
+        });
+        
+        if (!response.ok) {
+          const errorBody = await response.text();
+          throw new Error(`Apple Push HTTP ${response.status}: ${errorBody}`);
+        }
+        
+        return { success: true };
       })
     );
 
