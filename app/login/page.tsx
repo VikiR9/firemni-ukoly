@@ -67,6 +67,69 @@ export default function LoginPage() {
     router.refresh();
   };
 
+  // Expose a retry button so users can re-run SW registration & push subscription
+  const handleRetrySubscribe = async () => {
+    setError("");
+    try {
+      if (typeof Notification === "undefined") {
+        setError("Prohlížeč nepodporuje Notification API");
+        return;
+      }
+
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") {
+        setError("Notifikace nebyly povoleny");
+        return;
+      }
+
+      if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) {
+        setError("Service Worker není dostupný v tomto prohlížeči");
+        return;
+      }
+
+      const registration = await navigator.serviceWorker.register("/sw.js");
+      const vapidPublicKey = (process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "");
+      if (!vapidPublicKey) {
+        setError("Chybí VAPID klíč (NEXT_PUBLIC_VAPID_PUBLIC_KEY)");
+        return;
+      }
+
+      const converted = Uint8Array.from(
+        atob(vapidPublicKey.replace(/-/g, "+").replace(/_/g, "/")),
+        (c) => c.charCodeAt(0)
+      );
+
+      const existingSub = await registration.pushManager.getSubscription();
+      const sub = existingSub ?? await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: converted });
+
+      // Use currently entered username if available; otherwise inform user to login first
+      const submitUsername = username || null;
+      if (!submitUsername) {
+        setError("Zadej prosím jméno výše a klikni nejdříve na Přihlásit se (login) nebo zadej jméno sem před retry)");
+        return;
+      }
+
+      const res = await fetch("/api/push/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: submitUsername, subscription: sub.toJSON() }),
+      });
+
+      if (!res.ok) {
+        const txt = await res.text();
+        setError("Chyba při odesílání subscription na server: " + txt);
+        return;
+      }
+
+      // success
+      setError("");
+      alert("Subscription odeslána — zkontroluj prosím tabulku push_subscriptions v Supabase");
+    } catch (e: any) {
+      console.warn("Retry subscribe error:", e);
+      setError(String(e?.message ?? e));
+    }
+  };
+
   return (
     <div className="min-h-screen bg-zinc-900 flex items-center justify-center p-6">
       <div className="bg-zinc-800 rounded-xl p-8 w-full max-w-md">
@@ -122,6 +185,13 @@ export default function LoginPage() {
             className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-zinc-600 text-white font-semibold py-3 rounded-lg transition"
           >
             {loading ? "Přihlašování..." : "Přihlásit se"}
+          </button>
+          <button
+            type="button"
+            onClick={handleRetrySubscribe}
+            className="w-full mt-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition"
+          >
+            Registrovat notifikace (Retry subscribe)
           </button>
         </form>
 
