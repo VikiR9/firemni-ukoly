@@ -24,16 +24,20 @@ export default function LoginPage() {
 
     saveSession(user);
     
-    // Set OneSignal external user ID for targeted notifications
+    // Set OneSignal external user ID and request notification permission
     try {
       if (typeof window !== 'undefined' && (window as any).OneSignalDeferred) {
         (window as any).OneSignalDeferred.push(async function(OneSignal: any) {
+          // First login the user
           await OneSignal.login(user.displayName);
           console.log('OneSignal user ID set:', user.displayName);
+          
+          // Then request permission for push notifications
+          await OneSignal.Slidedown.promptPush();
         });
       }
     } catch (e) {
-      console.warn("OneSignal login failed:", e);
+      console.warn("OneSignal setup failed:", e);
     }
 
     router.push("/");
