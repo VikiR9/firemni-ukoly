@@ -44,14 +44,14 @@ export async function POST(request: NextRequest) {
     // Send push to all user's subscriptions with explicit options for Apple compatibility
     const results = await Promise.allSettled(
       subscriptions.map((sub) => {
-        // Apple Push requires specific TTL and urgency settings
+        // Apple Push requires specific TTL settings
         const options: any = {
           TTL: 2419200, // 28 days (Apple's maximum)
         };
         
-        // For Apple endpoints, set topic to bundle ID (optional but recommended)
+        // For Apple endpoints, topic MUST be a valid web origin (not just app name)
         if (sub.endpoint.includes('web.push.apple.com')) {
-          options.topic = 'firemni-ukoly'; // use your app domain or bundle id
+          options.topic = 'https://firemni-ukoly.vercel.app';
         }
 
         return webpush.sendNotification(
