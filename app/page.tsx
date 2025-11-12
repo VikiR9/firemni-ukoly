@@ -38,7 +38,7 @@ type Task = {
 };
 
 /** ===== Konfigurace UI ===== */
-const EMPLOYEES = ["Miloš", "Vendy", "Niki", "Karča", "Viki", "Kačka"] as const;
+const EMPLOYEES = ["Miloš", "Karina", "Kateřina", "Vendula", "Viktor", "Nikola"] as const;
 
 const PRIORITY_STYLE: Record<Priority, { label: string; cls: string }> = {
   Low: { label: "Nízká", cls: "bg-green-500" },
