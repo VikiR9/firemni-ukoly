@@ -23,6 +23,22 @@ export default function LoginPage() {
     }
 
     saveSession(user);
+    // Request browser notification permission as part of the user-initiated login action.
+    // Doing this here (before redirect) increases chances browsers accept the prompt
+    // because it follows a direct user gesture (form submit).
+    try {
+      if (typeof Notification !== "undefined") {
+        // Ask permission (some browsers require user gesture to show prompt)
+        await Notification.requestPermission();
+      }
+    } catch (e) {
+      // ignore errors — not all environments provide Notification API
+      // (mobile browsers may behave differently)
+      // We don't block login on this.
+      // eslint-disable-next-line no-console
+      console.warn("Notification permission request failed:", e);
+    }
+
     router.push("/");
     router.refresh();
   };
