@@ -65,8 +65,7 @@ const STATUS_STYLE: Record<Status, { badge: string; ring: string }> = {
 
 const prettyDate = (d?: string | null) => (d ? new Date(d).toLocaleDateString() : "Bez termínu");
 
-/** ===== Lanes (osobní sloupce) – dočasně lokálně, dokud nepřidáme přihlášení ===== */
-const LS_LANES = "firemni-ukoly:lanes";
+/** ===== Lanes (osobní sloupce) — online synchronizováno přes Supabase ===== */
 const DEFAULT_LANES = ["Nové", "Dnes", "Rozpracované", "Později"];
 
 export default function Home() {
@@ -82,18 +81,29 @@ export default function Home() {
 
   const lanesFor = (emp: string) => lanes[emp] ?? DEFAULT_LANES;
 
-  /** --- Načtení lanes z localStorage (jen preference UI) --- */
+  /** --- Načtení lanes z Supabase user_preferences --- */
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(LS_LANES);
-      if (raw) setLanes(JSON.parse(raw));
-    } catch {}
+    (async () => {
+      const { data, error } = await supabase.from("user_preferences").select("username, lanes");
+      if (error) {
+        console.error("Chyba načtení lanes:", error);
+        return;
+      }
+      const lanesMap: Record<string, string[]> = {};
+      for (const row of data || []) {
+        lanesMap[row.username] = Array.isArray(row.lanes) ? row.lanes : DEFAULT_LANES;
+      }
+      setLanes(lanesMap);
+    })();
   }, []);
-  useEffect(() => {
-    try {
-      localStorage.setItem(LS_LANES, JSON.stringify(lanes));
-    } catch {}
-  }, [lanes]);
+
+  /** --- Uložení lanes do Supabase při změně --- */
+  const saveLanesForUser = async (username: string, userLanes: string[]) => {
+    const { error } = await supabase
+      .from("user_preferences")
+      .upsert({ username, lanes: userLanes }, { onConflict: "username" });
+    if (error) console.error("Chyba ukládání lanes:", error);
+  };
 
   /** --- 1) Načtení úkolů ze Supabase --- */
   const fetchTasks = async () => {
@@ -194,34 +204,40 @@ export default function Home() {
   }, [tasks, who, lanes]);
 
   /** --- Lanes správa (lokální preference) --- */
-  const addLane = () => {
+  const addLane = async () => {
     const name = prompt("Název nového sloupce:");
     if (!name) return;
-    setLanes((prev) => {
-      const list = lanesFor(who);
-      if (list.includes(name)) return prev;
-      return { ...prev, [who]: [...list, name] };
-    });
+    const list = lanesFor(who);
+    if (list.includes(name)) return alert("Sloupec už existuje.");
+    const newList = [...list, name];
+    setLanes((prev) => ({ ...prev, [who]: newList }));
+    await saveLanesForUser(who, newList);
   };
-  const renameLane = (oldName: string) => {
+  const renameLane = async (oldName: string) => {
     const name = prompt("Přejmenovat sloupec na:", oldName);
     if (!name || name === oldName) return;
-    setLanes((prev) => {
-      const list = lanesFor(who).map((l) => (l === oldName ? name : l));
-      setTasks((p) => p.map((t) => (t.assignee === who && t.lane === oldName ? { ...t, lane: name } : t)));
-      return { ...prev, [who]: list };
-    });
+    const newList = lanesFor(who).map((l) => (l === oldName ? name : l));
+    setLanes((prev) => ({ ...prev, [who]: newList }));
+    await saveLanesForUser(who, newList);
+    // Aktualizovat tasky s tímto sloupcem
+    const tasksToUpdate = tasks.filter((t) => t.assignee === who && t.lane === oldName);
+    for (const t of tasksToUpdate) {
+      await updateTask(t.id, { lane: name });
+    }
   };
-  const removeLane = (name: string) => {
+  const removeLane = async (name: string) => {
     const list = lanesFor(who);
     if (list.length <= 1) return alert("Musí zůstat alespoň jeden sloupec.");
-    if (!confirm(`Smazat sloupec „${name}“? Úkoly přesuneme do prvního.`)) return;
+    if (!confirm(`Smazat sloupec „${name}"? Úkoly přesuneme do prvního.`)) return;
     const first = list[0];
-    setLanes((prev) => {
-      const next = list.filter((l) => l !== name);
-      setTasks((p) => p.map((t) => (t.assignee === who && t.lane === name ? { ...t, lane: first } : t)));
-      return { ...prev, [who]: next };
-    });
+    const newList = list.filter((l) => l !== name);
+    setLanes((prev) => ({ ...prev, [who]: newList }));
+    await saveLanesForUser(who, newList);
+    // Přesunout tasky do prvního sloupce
+    const tasksToMove = tasks.filter((t) => t.assignee === who && t.lane === name);
+    for (const t of tasksToMove) {
+      await updateTask(t.id, { lane: first });
+    }
   };
 
   /** --- Modal otevřít/uložit --- */
