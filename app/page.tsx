@@ -1,7 +1,9 @@
 "use client";
 export const dynamic = "force-dynamic";
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { loadSession, clearSession, type User } from "@/lib/auth";
 
 /** ===== Typy ===== */
 type Priority = "Low" | "Medium" | "High" | "Urgent";
@@ -69,9 +71,9 @@ const prettyDate = (d?: string | null) => (d ? new Date(d).toLocaleDateString() 
 const DEFAULT_LANES = ["Nové", "Dnes", "Rozpracované", "Později"];
 
 export default function Home() {
+  const router = useRouter();
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [role, setRole] = useState<Role>("OWNER");
-  const [who, setWho] = useState<string>(EMPLOYEES[0]);
   const [lanes, setLanes] = useState<Record<string, string[]>>({});
   const [ownerView, setOwnerView] = useState<"ALL" | "REVIEW">("ALL");
 
@@ -80,6 +82,29 @@ export default function Home() {
   const [editing, setEditing] = useState<Task | null>(null);
 
   const lanesFor = (emp: string) => lanes[emp] ?? DEFAULT_LANES;
+
+  // Derived values from current user (safe defaults before auth loads)
+  const role = currentUser?.role || "EMPLOYEE";
+  const who = currentUser?.displayName || "";
+
+  /** --- Auth check & redirect --- */
+  useEffect(() => {
+    const user = loadSession();
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+    setCurrentUser(user);
+  }, [router]);
+
+  // Pokud není načten uživatel, zobrazíme loading
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen bg-zinc-900 flex items-center justify-center">
+        <div className="text-white text-lg">Načítání...</div>
+      </div>
+    );
+  }
 
   /** --- Načtení lanes z Supabase user_preferences --- */
   useEffect(() => {
@@ -211,14 +236,14 @@ export default function Home() {
     if (list.includes(name)) return alert("Sloupec už existuje.");
     const newList = [...list, name];
     setLanes((prev) => ({ ...prev, [who]: newList }));
-    await saveLanesForUser(who, newList);
+    await saveLanesForUser(currentUser.username, newList);
   };
   const renameLane = async (oldName: string) => {
     const name = prompt("Přejmenovat sloupec na:", oldName);
     if (!name || name === oldName) return;
     const newList = lanesFor(who).map((l) => (l === oldName ? name : l));
     setLanes((prev) => ({ ...prev, [who]: newList }));
-    await saveLanesForUser(who, newList);
+    await saveLanesForUser(currentUser.username, newList);
     // Aktualizovat tasky s tímto sloupcem
     const tasksToUpdate = tasks.filter((t) => t.assignee === who && t.lane === oldName);
     for (const t of tasksToUpdate) {
@@ -232,7 +257,7 @@ export default function Home() {
     const first = list[0];
     const newList = list.filter((l) => l !== name);
     setLanes((prev) => ({ ...prev, [who]: newList }));
-    await saveLanesForUser(who, newList);
+    await saveLanesForUser(currentUser.username, newList);
     // Přesunout tasky do prvního sloupce
     const tasksToMove = tasks.filter((t) => t.assignee === who && t.lane === name);
     for (const t of tasksToMove) {
@@ -322,22 +347,14 @@ export default function Home() {
         <h1 className="text-3xl font-bold">Přehled úkolů</h1>
 
         <div className="flex flex-wrap gap-3 items-center">
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-300">Role:</span>
-            <select value={role} onChange={(e) => setRole(e.target.value as Role)} className="rounded-md bg-zinc-800 px-3 py-2 outline-none">
-              <option value="OWNER">Majitel</option>
-              <option value="EMPLOYEE">Zaměstnanec</option>
-            </select>
+          <div className="flex items-center gap-2 bg-zinc-800 px-3 py-2 rounded-lg">
+            <span className="text-sm text-gray-300">Přihlášen:</span>
+            <span className="text-sm font-semibold text-white">{currentUser.displayName}</span>
+            <span className="text-xs text-gray-500">({currentUser.role === "OWNER" ? "Majitel" : "Zaměstnanec"})</span>
           </div>
 
           {role === "EMPLOYEE" ? (
             <>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-300">Jsem:</span>
-                <select value={who} onChange={(e) => setWho(e.target.value)} className="rounded-md bg-zinc-800 px-3 py-2 outline-none">
-                  {EMPLOYEES.map((e) => (<option key={e} value={e}>{e}</option>))}
-                </select>
-              </div>
               <button onClick={() => openNew(who)} className="bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded-lg text-sm">
                 + Nový úkol
               </button>
@@ -363,6 +380,16 @@ export default function Home() {
               </button>
             </>
           )}
+
+          <button
+            onClick={() => {
+              clearSession();
+              router.push("/login");
+            }}
+            className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg text-sm"
+          >
+            Odhlásit se
+          </button>
         </div>
       </header>
 
