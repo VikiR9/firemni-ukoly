@@ -44,9 +44,10 @@ export async function POST(request: NextRequest) {
     // Send push to all user's subscriptions with explicit options for Apple compatibility
     const results = await Promise.allSettled(
       subscriptions.map((sub) => {
-        // Apple Push requires specific TTL settings
+        // Apple Push requires specific TTL settings and proper content encoding
         const options: any = {
           TTL: 2419200, // 28 days (Apple's maximum)
+          contentEncoding: 'aes128gcm', // Explicitly set encoding for Apple
         };
         
         // For Apple endpoints, topic MUST be a valid web origin (not just app name)
