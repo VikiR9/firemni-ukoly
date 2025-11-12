@@ -42,6 +42,9 @@ export async function POST(request: NextRequest) {
     });
 
     // Send push to all user's subscriptions with explicit options for Apple compatibility
+    const toStandardBase64 = (value: string) =>
+      value.replace(/-/g, "+").replace(/_/g, "/");
+
     const results = await Promise.allSettled(
       subscriptions.map((sub) => {
         // Apple Push requires specific TTL settings and proper content encoding
@@ -59,8 +62,8 @@ export async function POST(request: NextRequest) {
           {
             endpoint: sub.endpoint,
             keys: {
-              p256dh: sub.p256dh,
-              auth: sub.auth,
+              p256dh: toStandardBase64(sub.p256dh),
+              auth: toStandardBase64(sub.auth),
             },
           },
           payload,
