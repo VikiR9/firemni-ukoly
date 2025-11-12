@@ -41,10 +41,20 @@ export async function POST(request: NextRequest) {
       url: "/",
     });
 
-    // Send push to all user's subscriptions
+    // Send push to all user's subscriptions with explicit options for Apple compatibility
     const results = await Promise.allSettled(
-      subscriptions.map((sub) =>
-        webpush.sendNotification(
+      subscriptions.map((sub) => {
+        // Apple Push requires specific TTL and urgency settings
+        const options: any = {
+          TTL: 2419200, // 28 days (Apple's maximum)
+        };
+        
+        // For Apple endpoints, set topic to bundle ID (optional but recommended)
+        if (sub.endpoint.includes('web.push.apple.com')) {
+          options.topic = 'firemni-ukoly'; // use your app domain or bundle id
+        }
+
+        return webpush.sendNotification(
           {
             endpoint: sub.endpoint,
             keys: {
@@ -52,9 +62,10 @@ export async function POST(request: NextRequest) {
               auth: sub.auth,
             },
           },
-          payload
-        )
-      )
+          payload,
+          options
+        );
+      })
     );
 
     // Remove failed subscriptions (e.g., expired or invalid)
