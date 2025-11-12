@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import OneSignalInit from "./OneSignalInit";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -35,10 +36,13 @@ export default function RootLayout({
         <link rel="icon" href="/file.svg" sizes="512x512" />
         <link rel="apple-touch-icon" href="/window.svg" />
         <link rel="mask-icon" href="/window.svg" color="#10b981" />
+        {/* OneSignal SDK */}
+        <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <OneSignalInit />
         {children}
       </body>
     </html>

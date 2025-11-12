@@ -1,15 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabaseClient";
-import webpush from "web-push";
-
-// Configure web-push with VAPID keys from environment variables
-if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
-  webpush.setVapidDetails(
-    process.env.VAPID_SUBJECT || "mailto:admin@example.com",
-    process.env.VAPID_PUBLIC_KEY,
-    process.env.VAPID_PRIVATE_KEY
-  );
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,84 +9,51 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing username or title" }, { status: 400 });
     }
 
-    // Fetch all push subscriptions for this user
-    const { data: subscriptions, error } = await supabase
-      .from("push_subscriptions")
-      .select("*")
-      .eq("username", username);
+    const appId = process.env.ONESIGNAL_APP_ID;
+    const restApiKey = process.env.ONESIGNAL_REST_API_KEY;
 
-    if (error) {
-      console.error("Failed to fetch subscriptions:", error);
-      return NextResponse.json({ error: "Database error" }, { status: 500 });
+    if (!appId || !restApiKey) {
+      console.error("OneSignal credentials missing");
+      return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
     }
 
-    if (!subscriptions || subscriptions.length === 0) {
-      return NextResponse.json({ message: "No subscriptions found for user" }, { status: 200 });
+    // Send notification via OneSignal REST API
+    // Target user by external_user_id (username)
+    const response = await fetch(`https://onesignal.com/api/v1/notifications`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Basic ${restApiKey}`,
+      },
+      body: JSON.stringify({
+        app_id: appId,
+        include_external_user_ids: [username],
+        headings: { en: title },
+        contents: { en: messageBody || title },
+        url: 'https://firemni-ukoly.vercel.app/',
+      }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      console.error('OneSignal API error:', result);
+      return NextResponse.json({ 
+        success: false, 
+        error: result.errors || 'Failed to send notification' 
+      }, { status: response.status });
     }
-
-    const payload = JSON.stringify({
-      title,
-      body: messageBody || title,
-      url: "/",
-    });
-
-    // Send push - use web-push for all platforms with topic for Apple
-    const results = await Promise.allSettled(
-      subscriptions.map((sub) => {
-        const options: any = { TTL: 2419200 };
-        
-        // Apple requires topic header
-        if (sub.endpoint.includes('web.push.apple.com')) {
-          options.topic = 'https://firemni-ukoly.vercel.app';
-        }
-
-        return webpush.sendNotification(
-          { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-          payload,
-          options
-        );
-      })
-    );
-
-    // Remove failed subscriptions (e.g., expired or invalid)
-    const failedIndexes: number[] = [];
-    const errors: any[] = [];
-    results.forEach((result, idx) => {
-      if (result.status === "rejected") {
-        const reason = result.reason;
-        console.error(`Push failed for subscription ${subscriptions[idx].id}:`, {
-          message: reason?.message,
-          statusCode: reason?.statusCode,
-          body: reason?.body,
-          headers: reason?.headers,
-          endpoint: subscriptions[idx].endpoint,
-        });
-        failedIndexes.push(idx);
-        errors.push({
-          subscriptionId: subscriptions[idx].id,
-          endpoint: subscriptions[idx].endpoint,
-          error: reason?.message || String(reason),
-          statusCode: reason?.statusCode,
-          body: reason?.body,
-        });
-      }
-    });
-
-    // Do NOT delete failed subscriptions automatically during debugging
-    // (Keep them so we can retry after fixes)
-    // if (failedIndexes.length > 0) {
-    //   const failedIds = failedIndexes.map((i) => subscriptions[i].id);
-    //   await supabase.from("push_subscriptions").delete().in("id", failedIds);
-    // }
 
     return NextResponse.json({
       success: true,
-      sent: results.filter((r) => r.status === "fulfilled").length,
-      failed: failedIndexes.length,
-      errors: errors.length > 0 ? errors : undefined,
+      sent: result.recipients || 0,
+      oneSignalId: result.id,
     });
-  } catch (e) {
+  } catch (e: any) {
     console.error("Send push endpoint error:", e);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ 
+      error: "Internal server error",
+      details: e?.message 
+    }, { status: 500 });
   }
 }
