@@ -73,12 +73,21 @@ export async function POST(request: NextRequest) {
     const errors: any[] = [];
     results.forEach((result, idx) => {
       if (result.status === "rejected") {
-        console.warn(`Push failed for subscription ${subscriptions[idx].id}:`, result.reason);
+        const reason = result.reason;
+        console.error(`Push failed for subscription ${subscriptions[idx].id}:`, {
+          message: reason?.message,
+          statusCode: reason?.statusCode,
+          body: reason?.body,
+          headers: reason?.headers,
+          endpoint: subscriptions[idx].endpoint,
+        });
         failedIndexes.push(idx);
         errors.push({
           subscriptionId: subscriptions[idx].id,
           endpoint: subscriptions[idx].endpoint,
-          error: result.reason?.message || String(result.reason),
+          error: reason?.message || String(reason),
+          statusCode: reason?.statusCode,
+          body: reason?.body,
         });
       }
     });
