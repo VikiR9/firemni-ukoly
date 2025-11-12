@@ -74,6 +74,7 @@ export default function Home() {
   const router = useRouter();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [toasts, setToasts] = useState<{ id: string; text: string }[]>([]);
   const [lanes, setLanes] = useState<Record<string, string[]>>({});
   const [ownerView, setOwnerView] = useState<"ALL" | "REVIEW">("ALL");
 
@@ -158,7 +159,20 @@ export default function Home() {
         (payload) => {
           // jednoduchá synchronizace do state
           if (payload.eventType === "INSERT") {
-            setTasks((prev) => [payload.new as Task, ...prev]);
+            const newTask = payload.new as Task;
+            setTasks((prev) => [newTask, ...prev]);
+            // pokud je nový úkol určen právě přihlášenému uživateli, zobrazíme notifikaci
+            if (currentUser && newTask.assignee === currentUser.displayName) {
+              addToast(`Nový úkol: ${newTask.title}`);
+              try {
+                if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+                  new Notification("Nový úkol", { body: newTask.title });
+                }
+              } catch (e) {
+                // Notification API může být nepřístupná v některých prostředích
+                console.warn("Notification API error:", e);
+              }
+            }
           } else if (payload.eventType === "UPDATE") {
             const updated = payload.new as Task;
             setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
@@ -173,7 +187,7 @@ export default function Home() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [currentUser]);
 
   /** --- CRUD operace přes Supabase --- */
   const addTask = async (partial: Omit<Task, "id" | "status">) => {
@@ -340,6 +354,24 @@ export default function Home() {
     if (id && t && t.assignee === who) updateTask(id, { lane: laneName });
   };
 
+  /** --- Toaster helpers --- */
+  const addToast = (text: string) => {
+    const id = String(Date.now()) + Math.random().toString(36).slice(2, 8);
+    setToasts((s) => [...s, { id, text }]);
+    setTimeout(() => setToasts((s) => s.filter((t) => t.id !== id)), 6000);
+  };
+
+  const requestNotificationPermission = async () => {
+    if (typeof Notification === "undefined") return;
+    try {
+      const p = await Notification.requestPermission();
+      if (p === "granted") addToast("Notifikace povoleny");
+      else addToast("Notifikace zakázány");
+    } catch (e) {
+      console.warn("Notification permission request failed", e);
+    }
+  };
+
   /** --- UI --- */
   // Pokud není načten uživatel, zobrazíme loading
   if (!currentUser) {
@@ -352,6 +384,14 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-zinc-900 text-white p-6 md:p-8">
+      {/* Toaster container */}
+      <div className="fixed top-4 right-4 z-50 flex flex-col gap-2">
+        {toasts.map((t) => (
+          <div key={t.id} className="bg-zinc-800 text-white px-4 py-2 rounded shadow-lg">
+            {t.text}
+          </div>
+        ))}
+      </div>
       <header className="mb-6 flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
         <h1 className="text-3xl font-bold">Přehled úkolů</h1>
 
