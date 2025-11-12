@@ -30,6 +30,11 @@ export default function RootLayout({
         <meta name="theme-color" content="#10b981" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        {/* Icons (using existing SVGs in /public) */}
+        <link rel="icon" href="/window.svg" sizes="192x192" />
+        <link rel="icon" href="/file.svg" sizes="512x512" />
+        <link rel="apple-touch-icon" href="/window.svg" />
+        <link rel="mask-icon" href="/window.svg" color="#10b981" />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
