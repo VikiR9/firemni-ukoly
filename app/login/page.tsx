@@ -43,6 +43,8 @@ export default function LoginPage() {
               Jméno
             </label>
             <input
+              name="username"
+              autoComplete="username"
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
@@ -57,6 +59,8 @@ export default function LoginPage() {
               Heslo
             </label>
             <input
+              name="password"
+              autoComplete="current-password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}

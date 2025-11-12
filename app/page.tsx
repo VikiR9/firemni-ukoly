@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { loadSession, clearSession, type User } from "@/lib/auth";
+import { loadSession, clearSession, type User, getAllUsers } from "@/lib/auth";
 
 /** ===== Typy ===== */
 type Priority = "Low" | "Medium" | "High" | "Urgent";
@@ -97,17 +97,9 @@ export default function Home() {
     setCurrentUser(user);
   }, [router]);
 
-  // Pokud není načten uživatel, zobrazíme loading
-  if (!currentUser) {
-    return (
-      <div className="min-h-screen bg-zinc-900 flex items-center justify-center">
-        <div className="text-white text-lg">Načítání...</div>
-      </div>
-    );
-  }
-
   /** --- Načtení lanes z Supabase user_preferences --- */
   useEffect(() => {
+    if (!currentUser) return;
     (async () => {
       const { data, error } = await supabase.from("user_preferences").select("username, lanes");
       if (error) {
@@ -115,12 +107,17 @@ export default function Home() {
         return;
       }
       const lanesMap: Record<string, string[]> = {};
+      // Map stored 'username' values to display names where possible so UI (which uses displayName)
+      // can find per-user preferences regardless whether older rows used usernames or display names.
+      const users = getAllUsers();
+      const nameByUsername: Record<string, string> = Object.fromEntries(users.map((u) => [u.username, u.displayName]));
       for (const row of data || []) {
-        lanesMap[row.username] = Array.isArray(row.lanes) ? row.lanes : DEFAULT_LANES;
+        const key = nameByUsername[row.username] ?? row.username;
+        lanesMap[key] = Array.isArray(row.lanes) ? row.lanes : DEFAULT_LANES;
       }
       setLanes(lanesMap);
     })();
-  }, []);
+  }, [currentUser]);
 
   /** --- Uložení lanes do Supabase při změně --- */
   const saveLanesForUser = async (username: string, userLanes: string[]) => {
@@ -230,20 +227,22 @@ export default function Home() {
 
   /** --- Lanes správa (lokální preference) --- */
   const addLane = async () => {
+    if (!currentUser) return;
     const name = prompt("Název nového sloupce:");
     if (!name) return;
     const list = lanesFor(who);
     if (list.includes(name)) return alert("Sloupec už existuje.");
     const newList = [...list, name];
-    setLanes((prev) => ({ ...prev, [who]: newList }));
-    await saveLanesForUser(currentUser.username, newList);
+  setLanes((prev) => ({ ...prev, [who]: newList }));
+  await saveLanesForUser(currentUser.displayName, newList);
   };
   const renameLane = async (oldName: string) => {
+    if (!currentUser) return;
     const name = prompt("Přejmenovat sloupec na:", oldName);
     if (!name || name === oldName) return;
     const newList = lanesFor(who).map((l) => (l === oldName ? name : l));
-    setLanes((prev) => ({ ...prev, [who]: newList }));
-    await saveLanesForUser(currentUser.username, newList);
+  setLanes((prev) => ({ ...prev, [who]: newList }));
+  await saveLanesForUser(currentUser.displayName, newList);
     // Aktualizovat tasky s tímto sloupcem
     const tasksToUpdate = tasks.filter((t) => t.assignee === who && t.lane === oldName);
     for (const t of tasksToUpdate) {
@@ -251,13 +250,14 @@ export default function Home() {
     }
   };
   const removeLane = async (name: string) => {
+    if (!currentUser) return;
     const list = lanesFor(who);
     if (list.length <= 1) return alert("Musí zůstat alespoň jeden sloupec.");
     if (!confirm(`Smazat sloupec „${name}"? Úkoly přesuneme do prvního.`)) return;
     const first = list[0];
     const newList = list.filter((l) => l !== name);
-    setLanes((prev) => ({ ...prev, [who]: newList }));
-    await saveLanesForUser(currentUser.username, newList);
+  setLanes((prev) => ({ ...prev, [who]: newList }));
+  await saveLanesForUser(currentUser.displayName, newList);
     // Přesunout tasky do prvního sloupce
     const tasksToMove = tasks.filter((t) => t.assignee === who && t.lane === name);
     for (const t of tasksToMove) {
@@ -341,6 +341,15 @@ export default function Home() {
   };
 
   /** --- UI --- */
+  // Pokud není načten uživatel, zobrazíme loading
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen bg-zinc-900 flex items-center justify-center">
+        <div className="text-white text-lg">Načítání...</div>
+      </div>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-zinc-900 text-white p-6 md:p-8">
       <header className="mb-6 flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
