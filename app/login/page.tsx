@@ -29,7 +29,31 @@ export default function LoginPage() {
     try {
       if (typeof Notification !== "undefined") {
         // Ask permission (some browsers require user gesture to show prompt)
-        await Notification.requestPermission();
+        const p = await Notification.requestPermission();
+        // If granted, attempt to register service worker and subscribe to push now (still user gesture)
+        if (p === "granted" && typeof navigator !== "undefined" && "serviceWorker" in navigator) {
+          try {
+            const registration = await navigator.serviceWorker.register("/sw.js");
+            const vapidPublicKey = (process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "");
+            if (vapidPublicKey) {
+              // convert base64 to Uint8Array
+              const converted = Uint8Array.from(
+                atob(vapidPublicKey.replace(/-/g, "+").replace(/_/g, "/")),
+                (c) => c.charCodeAt(0)
+              );
+              const existingSub = await registration.pushManager.getSubscription();
+              const sub = existingSub ?? await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: converted });
+              // send subscription to backend
+              await fetch("/api/push/subscribe", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username: user.displayName, subscription: sub.toJSON() }),
+              });
+            }
+          } catch (swErr) {
+            console.warn("SW/register/subscribe failed:", swErr);
+          }
+        }
       }
     } catch (e) {
       // ignore errors — not all environments provide Notification API
