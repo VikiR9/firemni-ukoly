@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabaseClient";
 import webpush from "web-push";
-// @ts-ignore
-import { p256 } from '@noble/curves/p256';
 
 // Configure web-push with VAPID keys from environment variables
 if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
@@ -44,7 +42,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Helper: Generate VAPID JWT with URL-safe base64 (for Apple Push)
-    const generateVapidJWT = (endpoint: string): string => {
+    const generateVapidJWT = async (endpoint: string): Promise<string> => {
       const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY!;
       const vapidSubject = process.env.VAPID_SUBJECT || 'mailto:admin@example.com';
       
@@ -60,10 +58,26 @@ export async function POST(request: NextRequest) {
       const claims = base64url(JSON.stringify({ aud: audience, exp, sub: vapidSubject }));
       const unsignedToken = `${header}.${claims}`;
       
-      // Sign with ES256 using @noble/curves (URL-safe throughout)
+      // Import private key for Web Crypto API (ES256 = P-256 = secp256r1)
       const privateKeyBytes = Buffer.from(vapidPrivateKey.replace(/-/g, '+').replace(/_/g, '/'), 'base64');
-      const signature = p256.sign(Buffer.from(unsignedToken), privateKeyBytes).toCompactRawBytes();
-      const signatureB64 = Buffer.from(signature).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+      
+      // Create PKCS8 format for Web Crypto (simple DER wrapping for raw P-256 private key)
+      const cryptoKey = await crypto.subtle.importKey(
+        'pkcs8',
+        privateKeyBytes,
+        { name: 'ECDSA', namedCurve: 'P-256' },
+        false,
+        ['sign']
+      );
+      
+      // Sign with ES256
+      const signatureBytes = await crypto.subtle.sign(
+        { name: 'ECDSA', hash: 'SHA-256' },
+        cryptoKey,
+        Buffer.from(unsignedToken)
+      );
+      
+      const signatureB64 = Buffer.from(signatureBytes).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
       
       return `${unsignedToken}.${signatureB64}`;
     };
@@ -83,7 +97,7 @@ export async function POST(request: NextRequest) {
         }
         
         // Apple: Manual HTTP/2 request with URL-safe base64 preserved
-        const jwtToken = generateVapidJWT(sub.endpoint);
+        const jwtToken = await generateVapidJWT(sub.endpoint);
         const vapidPublicKey = process.env.VAPID_PUBLIC_KEY!;
         
         const response = await fetch(sub.endpoint, {
