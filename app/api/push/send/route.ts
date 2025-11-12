@@ -59,10 +59,16 @@ export async function POST(request: NextRequest) {
 
     // Remove failed subscriptions (e.g., expired or invalid)
     const failedIndexes: number[] = [];
+    const errors: any[] = [];
     results.forEach((result, idx) => {
       if (result.status === "rejected") {
         console.warn(`Push failed for subscription ${subscriptions[idx].id}:`, result.reason);
         failedIndexes.push(idx);
+        errors.push({
+          subscriptionId: subscriptions[idx].id,
+          endpoint: subscriptions[idx].endpoint,
+          error: result.reason?.message || String(result.reason),
+        });
       }
     });
 
@@ -76,6 +82,7 @@ export async function POST(request: NextRequest) {
       success: true,
       sent: results.filter((r) => r.status === "fulfilled").length,
       failed: failedIndexes.length,
+      errors: errors.length > 0 ? errors : undefined,
     });
   } catch (e) {
     console.error("Send push endpoint error:", e);
