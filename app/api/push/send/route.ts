@@ -41,19 +41,19 @@ export async function POST(request: NextRequest) {
       url: "/",
     });
 
-    // Send push to all user's subscriptions with explicit options for Apple compatibility
-    const toStandardBase64 = (value: string) =>
-      value.replace(/-/g, "+").replace(/_/g, "/");
-
+    // Send push - use web-push library with explicit VAPID per request for Apple
     const results = await Promise.allSettled(
       subscriptions.map((sub) => {
-        // Apple Push requires specific TTL settings and proper content encoding
         const options: any = {
-          TTL: 2419200, // 28 days (Apple's maximum)
-          contentEncoding: 'aes128gcm', // Explicitly set encoding for Apple
+          TTL: 2419200,
+          vapidDetails: {
+            subject: process.env.VAPID_SUBJECT || 'mailto:admin@example.com',
+            publicKey: process.env.VAPID_PUBLIC_KEY!,
+            privateKey: process.env.VAPID_PRIVATE_KEY!,
+          },
         };
         
-        // For Apple endpoints, topic MUST be a valid web origin (not just app name)
+        // For Apple, add topic (required)
         if (sub.endpoint.includes('web.push.apple.com')) {
           options.topic = 'https://firemni-ukoly.vercel.app';
         }
@@ -62,8 +62,8 @@ export async function POST(request: NextRequest) {
           {
             endpoint: sub.endpoint,
             keys: {
-              p256dh: toStandardBase64(sub.p256dh),
-              auth: toStandardBase64(sub.auth),
+              p256dh: sub.p256dh,
+              auth: sub.auth,
             },
           },
           payload,
@@ -96,11 +96,12 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    // Optionally delete failed subscriptions from DB
-    if (failedIndexes.length > 0) {
-      const failedIds = failedIndexes.map((i) => subscriptions[i].id);
-      await supabase.from("push_subscriptions").delete().in("id", failedIds);
-    }
+    // Do NOT delete failed subscriptions automatically during debugging
+    // (Keep them so we can retry after fixes)
+    // if (failedIndexes.length > 0) {
+    //   const failedIds = failedIndexes.map((i) => subscriptions[i].id);
+    //   await supabase.from("push_subscriptions").delete().in("id", failedIds);
+    // }
 
     return NextResponse.json({
       success: true,
