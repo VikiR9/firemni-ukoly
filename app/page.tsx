@@ -98,54 +98,7 @@ export default function Home() {
     setCurrentUser(user);
   }, [router]);
 
-  /** --- Register service worker and subscribe to push --- */
-  useEffect(() => {
-    if (!currentUser) return;
-    
-    (async () => {
-      try {
-        // Register service worker
-        if ("serviceWorker" in navigator) {
-          const registration = await navigator.serviceWorker.register("/sw.js");
-          console.log("Service Worker registered:", registration);
 
-          // Subscribe to push notifications
-          if ("PushManager" in window && Notification.permission === "granted") {
-            const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-            if (!vapidPublicKey) {
-              console.warn("VAPID public key not set in environment");
-              return;
-            }
-
-            // Convert base64 VAPID key to Uint8Array
-            const convertedVapidKey = Uint8Array.from(
-              atob(vapidPublicKey.replace(/-/g, "+").replace(/_/g, "/")),
-              (c) => c.charCodeAt(0)
-            );
-
-            const subscription = await registration.pushManager.subscribe({
-              userVisibleOnly: true,
-              applicationServerKey: convertedVapidKey,
-            });
-
-            // Send subscription to backend
-            await fetch("/api/push/subscribe", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                username: currentUser.displayName,
-                subscription: subscription.toJSON(),
-              }),
-            });
-
-            console.log("Push subscription saved");
-          }
-        }
-      } catch (error) {
-        console.error("Service worker / push subscription error:", error);
-      }
-    })();
-  }, [currentUser]);
 
   /** --- Načtení lanes z Supabase user_preferences --- */
   useEffect(() => {

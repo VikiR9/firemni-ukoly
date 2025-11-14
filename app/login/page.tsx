@@ -24,7 +24,7 @@ export default function LoginPage() {
 
     saveSession(user);
     
-    // Request notification permission first, then set OneSignal user ID
+    // Request notification permission and set OneSignal user ID
     try {
       // Request native browser permission
       if (typeof Notification !== 'undefined') {
@@ -32,11 +32,17 @@ export default function LoginPage() {
         console.log('Notification permission:', permission);
       }
       
-      // Then set OneSignal external user ID
+      // Set OneSignal external user ID (after initialization completes)
       if (typeof window !== 'undefined' && (window as any).OneSignalDeferred) {
         (window as any).OneSignalDeferred.push(async function(OneSignal: any) {
-          await OneSignal.login(user.displayName);
-          console.log('OneSignal user ID set:', user.displayName);
+          try {
+            // Wait for OneSignal to be fully initialized
+            await OneSignal.User.PushSubscription.optIn();
+            await OneSignal.login(user.displayName);
+            console.log('OneSignal user ID set:', user.displayName);
+          } catch (err) {
+            console.warn('OneSignal login error:', err);
+          }
         });
       }
     } catch (e) {
