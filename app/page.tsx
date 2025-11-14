@@ -493,11 +493,9 @@ export default function Home() {
           </div>
 
           {/* Mobile swipe view */}
-          <div className="md:hidden">
+          <div className="md:hidden overflow-hidden">
             {(() => {
               const columns = ownerView === "ALL" ? ownerColumns.order : ownerReviewColumns.order;
-              const emp = columns[currentLaneIndex];
-              const list = (ownerView === "ALL" ? ownerColumns.map : ownerReviewColumns.map)[emp] || [];
               
               let touchStartX = 0;
               let touchEndX = 0;
@@ -523,31 +521,45 @@ export default function Home() {
               return (
                 <>
                   <div className="text-center mb-4">
-                    <h2 className="text-xl font-bold">{emp} ({list.length})</h2>
+                    <h2 className="text-xl font-bold">{columns[currentLaneIndex]} ({((ownerView === "ALL" ? ownerColumns.map : ownerReviewColumns.map)[columns[currentLaneIndex]] || []).length})</h2>
                     <div className="flex justify-center gap-1 mt-2">
                       {columns.map((_, idx) => (
-                        <div key={idx} className={`w-2 h-2 rounded-full ${idx === currentLaneIndex ? 'bg-emerald-500' : 'bg-zinc-600'}`} />
+                        <div key={idx} className={`w-2 h-2 rounded-full transition-colors ${idx === currentLaneIndex ? 'bg-emerald-500' : 'bg-zinc-600'}`} />
                       ))}
                     </div>
                   </div>
                   <div 
-                    className="flex flex-col gap-3"
+                    className="relative"
                     onTouchStart={handleTouchStart}
                     onTouchEnd={handleTouchEnd}
                   >
-                    {list.map((task) => (
-                      <TaskCard
-                        key={task.id}
-                        task={task}
-                        mobile
-                        onEdit={() => openEdit(task)}
-                        onDelete={() => { if (confirm("Smazat úkol?")) deleteTask(task.id); }}
-                        actionsOwner={{
-                          approve: can.approveArchive(task) ? () => doApproveArchive(task) : undefined,
-                          returnBack: can.returnTask(task) ? () => doReturn(task) : undefined,
-                        }}
-                      />
-                    ))}
+                    <div 
+                      className="flex transition-transform duration-300 ease-out"
+                      style={{ transform: `translateX(-${currentLaneIndex * 100}%)` }}
+                    >
+                      {columns.map((emp, idx) => {
+                        const list = (ownerView === "ALL" ? ownerColumns.map : ownerReviewColumns.map)[emp] || [];
+                        return (
+                          <div key={emp} className="w-full flex-shrink-0 px-1">
+                            <div className="flex flex-col gap-3">
+                              {list.map((task) => (
+                                <TaskCard
+                                  key={task.id}
+                                  task={task}
+                                  mobile
+                                  onEdit={() => openEdit(task)}
+                                  onDelete={() => { if (confirm("Smazat úkol?")) deleteTask(task.id); }}
+                                  actionsOwner={{
+                                    approve: can.approveArchive(task) ? () => doApproveArchive(task) : undefined,
+                                    returnBack: can.returnTask(task) ? () => doReturn(task) : undefined,
+                                  }}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 </>
               );
@@ -593,11 +605,9 @@ export default function Home() {
           </div>
 
           {/* Mobile swipe view */}
-          <div className="md:hidden">
+          <div className="md:hidden overflow-hidden">
             {(() => {
               const columns = employeeColumns.order;
-              const laneName = columns[currentLaneIndex];
-              const list = employeeColumns.map[laneName] || [];
               
               let touchStartX = 0;
               let touchEndX = 0;
@@ -623,33 +633,47 @@ export default function Home() {
               return (
                 <>
                   <div className="text-center mb-4">
-                    <h2 className="text-xl font-bold">{laneName} ({list.length})</h2>
+                    <h2 className="text-xl font-bold">{columns[currentLaneIndex]} ({(employeeColumns.map[columns[currentLaneIndex]] || []).length})</h2>
                     <div className="flex justify-center gap-1 mt-2">
                       {columns.map((_, idx) => (
-                        <div key={idx} className={`w-2 h-2 rounded-full ${idx === currentLaneIndex ? 'bg-emerald-500' : 'bg-zinc-600'}`} />
+                        <div key={idx} className={`w-2 h-2 rounded-full transition-colors ${idx === currentLaneIndex ? 'bg-emerald-500' : 'bg-zinc-600'}`} />
                       ))}
                     </div>
                   </div>
                   <div 
-                    className="flex flex-col gap-3"
+                    className="relative"
                     onTouchStart={handleTouchStart}
                     onTouchEnd={handleTouchEnd}
                   >
-                    {list.map((task) => (
-                      <TaskCard
-                        key={task.id}
-                        task={task}
-                        mobile
-                        onEdit={() => openEdit(task)}
-                        onDelete={() => { if (confirm("Smazat úkol?")) deleteTask(task.id); }}
-                        actionsEmployee={{
-                          accept: can.accept(task) ? () => doAccept(task) : undefined,
-                          decline: can.decline(task) ? () => doDecline(task) : undefined,
-                          inProgress: can.inProgress(task) ? () => doInProgress(task) : undefined,
-                          submitDone: can.submitDone(task) ? () => doSubmitDone(task) : undefined,
-                        }}
-                      />
-                    ))}
+                    <div 
+                      className="flex transition-transform duration-300 ease-out"
+                      style={{ transform: `translateX(-${currentLaneIndex * 100}%)` }}
+                    >
+                      {columns.map((laneName, idx) => {
+                        const list = employeeColumns.map[laneName] || [];
+                        return (
+                          <div key={laneName} className="w-full flex-shrink-0 px-1">
+                            <div className="flex flex-col gap-3">
+                              {list.map((task) => (
+                                <TaskCard
+                                  key={task.id}
+                                  task={task}
+                                  mobile
+                                  onEdit={() => openEdit(task)}
+                                  onDelete={() => { if (confirm("Smazat úkol?")) deleteTask(task.id); }}
+                                  actionsEmployee={{
+                                    accept: can.accept(task) ? () => doAccept(task) : undefined,
+                                    decline: can.decline(task) ? () => doDecline(task) : undefined,
+                                    inProgress: can.inProgress(task) ? () => doInProgress(task) : undefined,
+                                    submitDone: can.submitDone(task) ? () => doSubmitDone(task) : undefined,
+                                  }}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 </>
               );
