@@ -498,14 +498,43 @@ export default function Home() {
               const columns = ownerView === "ALL" ? ownerColumns.order : ownerReviewColumns.order;
               const emp = columns[currentLaneIndex];
               const list = (ownerView === "ALL" ? ownerColumns.map : ownerReviewColumns.map)[emp] || [];
+              
+              let touchStartX = 0;
+              let touchEndX = 0;
+              
+              const handleTouchStart = (e: React.TouchEvent) => {
+                touchStartX = e.touches[0].clientX;
+              };
+              
+              const handleTouchEnd = (e: React.TouchEvent) => {
+                touchEndX = e.changedTouches[0].clientX;
+                const diff = touchStartX - touchEndX;
+                
+                // Swipe left (next column)
+                if (diff > 50) {
+                  setCurrentLaneIndex(Math.min(columns.length - 1, currentLaneIndex + 1));
+                }
+                // Swipe right (previous column)
+                else if (diff < -50) {
+                  setCurrentLaneIndex(Math.max(0, currentLaneIndex - 1));
+                }
+              };
+              
               return (
                 <>
-                  <div className="flex items-center justify-between mb-4">
-                    <button onClick={() => setCurrentLaneIndex(Math.max(0, currentLaneIndex - 1))} disabled={currentLaneIndex === 0} className="text-2xl disabled:opacity-30">←</button>
+                  <div className="text-center mb-4">
                     <h2 className="text-xl font-bold">{emp} ({list.length})</h2>
-                    <button onClick={() => setCurrentLaneIndex(Math.min(columns.length - 1, currentLaneIndex + 1))} disabled={currentLaneIndex === columns.length - 1} className="text-2xl disabled:opacity-30">→</button>
+                    <div className="flex justify-center gap-1 mt-2">
+                      {columns.map((_, idx) => (
+                        <div key={idx} className={`w-2 h-2 rounded-full ${idx === currentLaneIndex ? 'bg-emerald-500' : 'bg-zinc-600'}`} />
+                      ))}
+                    </div>
                   </div>
-                  <div className="flex flex-col gap-3">
+                  <div 
+                    className="flex flex-col gap-3"
+                    onTouchStart={handleTouchStart}
+                    onTouchEnd={handleTouchEnd}
+                  >
                     {list.map((task) => (
                       <TaskCard
                         key={task.id}
@@ -569,14 +598,43 @@ export default function Home() {
               const columns = employeeColumns.order;
               const laneName = columns[currentLaneIndex];
               const list = employeeColumns.map[laneName] || [];
+              
+              let touchStartX = 0;
+              let touchEndX = 0;
+              
+              const handleTouchStart = (e: React.TouchEvent) => {
+                touchStartX = e.touches[0].clientX;
+              };
+              
+              const handleTouchEnd = (e: React.TouchEvent) => {
+                touchEndX = e.changedTouches[0].clientX;
+                const diff = touchStartX - touchEndX;
+                
+                // Swipe left (next column)
+                if (diff > 50) {
+                  setCurrentLaneIndex(Math.min(columns.length - 1, currentLaneIndex + 1));
+                }
+                // Swipe right (previous column)
+                else if (diff < -50) {
+                  setCurrentLaneIndex(Math.max(0, currentLaneIndex - 1));
+                }
+              };
+              
               return (
                 <>
-                  <div className="flex items-center justify-between mb-4">
-                    <button onClick={() => setCurrentLaneIndex(Math.max(0, currentLaneIndex - 1))} disabled={currentLaneIndex === 0} className="text-2xl disabled:opacity-30">←</button>
+                  <div className="text-center mb-4">
                     <h2 className="text-xl font-bold">{laneName} ({list.length})</h2>
-                    <button onClick={() => setCurrentLaneIndex(Math.min(columns.length - 1, currentLaneIndex + 1))} disabled={currentLaneIndex === columns.length - 1} className="text-2xl disabled:opacity-30">→</button>
+                    <div className="flex justify-center gap-1 mt-2">
+                      {columns.map((_, idx) => (
+                        <div key={idx} className={`w-2 h-2 rounded-full ${idx === currentLaneIndex ? 'bg-emerald-500' : 'bg-zinc-600'}`} />
+                      ))}
+                    </div>
                   </div>
-                  <div className="flex flex-col gap-3">
+                  <div 
+                    className="flex flex-col gap-3"
+                    onTouchStart={handleTouchStart}
+                    onTouchEnd={handleTouchEnd}
+                  >
                     {list.map((task) => (
                       <TaskCard
                         key={task.id}
