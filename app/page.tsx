@@ -77,6 +77,7 @@ export default function Home() {
   const [toasts, setToasts] = useState<{ id: string; text: string }[]>([]);
   const [lanes, setLanes] = useState<Record<string, string[]>>({});
   const [ownerView, setOwnerView] = useState<"ALL" | "REVIEW">("ALL");
+  const [currentLaneIndex, setCurrentLaneIndex] = useState(0); // For mobile swipe
 
   // Modal
   const [modalOpen, setModalOpen] = useState(false);
@@ -467,62 +468,136 @@ export default function Home() {
       </header>
 
       {role === "OWNER" ? (
-        <div className="flex gap-6 overflow-x-auto pb-4">
-          {(ownerView === "ALL" ? ownerColumns.order : ownerReviewColumns.order).map((emp) => {
-            const list = (ownerView === "ALL" ? ownerColumns.map : ownerReviewColumns.map)[emp] || [];
-            return (
-              <Column key={emp} title={emp} count={list.length} onAdd={() => openNew(emp)}>
-                {list.map((task) => (
-                  <TaskCard
-                    key={task.id}
-                    task={task}
-                    onEdit={() => openEdit(task)}
-                    onDelete={() => { if (confirm("Smazat úkol?")) deleteTask(task.id); }}
-                    actionsOwner={{
-                      approve: can.approveArchive(task) ? () => doApproveArchive(task) : undefined,
-                      returnBack: can.returnTask(task) ? () => doReturn(task) : undefined,
-                    }}
-                  />
-                ))}
-              </Column>
-            );
-          })}
-        </div>
+        <>
+          {/* Desktop view */}
+          <div className="hidden md:flex gap-6 overflow-x-auto pb-4">
+            {(ownerView === "ALL" ? ownerColumns.order : ownerReviewColumns.order).map((emp) => {
+              const list = (ownerView === "ALL" ? ownerColumns.map : ownerReviewColumns.map)[emp] || [];
+              return (
+                <Column key={emp} title={emp} count={list.length} onAdd={() => openNew(emp)}>
+                  {list.map((task) => (
+                    <TaskCard
+                      key={task.id}
+                      task={task}
+                      onEdit={() => openEdit(task)}
+                      onDelete={() => { if (confirm("Smazat úkol?")) deleteTask(task.id); }}
+                      actionsOwner={{
+                        approve: can.approveArchive(task) ? () => doApproveArchive(task) : undefined,
+                        returnBack: can.returnTask(task) ? () => doReturn(task) : undefined,
+                      }}
+                    />
+                  ))}
+                </Column>
+              );
+            })}
+          </div>
+
+          {/* Mobile swipe view */}
+          <div className="md:hidden">
+            {(() => {
+              const columns = ownerView === "ALL" ? ownerColumns.order : ownerReviewColumns.order;
+              const emp = columns[currentLaneIndex];
+              const list = (ownerView === "ALL" ? ownerColumns.map : ownerReviewColumns.map)[emp] || [];
+              return (
+                <>
+                  <div className="flex items-center justify-between mb-4">
+                    <button onClick={() => setCurrentLaneIndex(Math.max(0, currentLaneIndex - 1))} disabled={currentLaneIndex === 0} className="text-2xl disabled:opacity-30">←</button>
+                    <h2 className="text-xl font-bold">{emp} ({list.length})</h2>
+                    <button onClick={() => setCurrentLaneIndex(Math.min(columns.length - 1, currentLaneIndex + 1))} disabled={currentLaneIndex === columns.length - 1} className="text-2xl disabled:opacity-30">→</button>
+                  </div>
+                  <div className="flex flex-col gap-3">
+                    {list.map((task) => (
+                      <TaskCard
+                        key={task.id}
+                        task={task}
+                        mobile
+                        onEdit={() => openEdit(task)}
+                        onDelete={() => { if (confirm("Smazat úkol?")) deleteTask(task.id); }}
+                        actionsOwner={{
+                          approve: can.approveArchive(task) ? () => doApproveArchive(task) : undefined,
+                          returnBack: can.returnTask(task) ? () => doReturn(task) : undefined,
+                        }}
+                      />
+                    ))}
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        </>
       ) : (
-        <div className="flex gap-6 overflow-x-auto pb-4">
-          {employeeColumns.order.map((laneName) => {
-            const list = employeeColumns.map[laneName] || [];
-            return (
-              <Column
-                key={laneName}
-                title={laneName}
-                count={list.length}
-                onAdd={() => openNew(who, laneName)}
-                onRename={() => renameLane(laneName)}
-                onRemove={() => removeLane(laneName)}
-                droppable
-                onDrop={(e) => onDropToLane(e, laneName)}
-              >
-                {list.map((task) => (
-                  <TaskCard
-                    key={task.id}
-                    task={task}
-                    draggable
-                    onDragStart={(e) => onDragStart(e, task.id)}
-                    onEdit={() => openEdit(task)}
-                    onDelete={() => { if (confirm("Smazat úkol?")) deleteTask(task.id); }}
-                    actionsEmployee={{
-                      accept: can.accept(task) ? () => doAccept(task) : undefined,
-                      decline: can.decline(task) ? () => doDecline(task) : undefined,
-                      inProgress: can.inProgress(task) ? () => doInProgress(task) : undefined,
-                      submitDone: can.submitDone(task) ? () => doSubmitDone(task) : undefined,
-                    }}
-                  />
-                ))}
-              </Column>
-            );
-          })}
-        </div>
+        <>
+          {/* Desktop view */}
+          <div className="hidden md:flex gap-6 overflow-x-auto pb-4">
+            {employeeColumns.order.map((laneName) => {
+              const list = employeeColumns.map[laneName] || [];
+              return (
+                <Column
+                  key={laneName}
+                  title={laneName}
+                  count={list.length}
+                  onAdd={() => openNew(who, laneName)}
+                  onRename={() => renameLane(laneName)}
+                  onRemove={() => removeLane(laneName)}
+                  droppable
+                  onDrop={(e) => onDropToLane(e, laneName)}
+                >
+                  {list.map((task) => (
+                    <TaskCard
+                      key={task.id}
+                      task={task}
+                      draggable
+                      onDragStart={(e) => onDragStart(e, task.id)}
+                      onEdit={() => openEdit(task)}
+                      onDelete={() => { if (confirm("Smazat úkol?")) deleteTask(task.id); }}
+                      actionsEmployee={{
+                        accept: can.accept(task) ? () => doAccept(task) : undefined,
+                        decline: can.decline(task) ? () => doDecline(task) : undefined,
+                        inProgress: can.inProgress(task) ? () => doInProgress(task) : undefined,
+                        submitDone: can.submitDone(task) ? () => doSubmitDone(task) : undefined,
+                      }}
+                    />
+                  ))}
+                </Column>
+              );
+            })}
+          </div>
+
+          {/* Mobile swipe view */}
+          <div className="md:hidden">
+            {(() => {
+              const columns = employeeColumns.order;
+              const laneName = columns[currentLaneIndex];
+              const list = employeeColumns.map[laneName] || [];
+              return (
+                <>
+                  <div className="flex items-center justify-between mb-4">
+                    <button onClick={() => setCurrentLaneIndex(Math.max(0, currentLaneIndex - 1))} disabled={currentLaneIndex === 0} className="text-2xl disabled:opacity-30">←</button>
+                    <h2 className="text-xl font-bold">{laneName} ({list.length})</h2>
+                    <button onClick={() => setCurrentLaneIndex(Math.min(columns.length - 1, currentLaneIndex + 1))} disabled={currentLaneIndex === columns.length - 1} className="text-2xl disabled:opacity-30">→</button>
+                  </div>
+                  <div className="flex flex-col gap-3">
+                    {list.map((task) => (
+                      <TaskCard
+                        key={task.id}
+                        task={task}
+                        mobile
+                        onEdit={() => openEdit(task)}
+                        onDelete={() => { if (confirm("Smazat úkol?")) deleteTask(task.id); }}
+                        actionsEmployee={{
+                          accept: can.accept(task) ? () => doAccept(task) : undefined,
+                          decline: can.decline(task) ? () => doDecline(task) : undefined,
+                          inProgress: can.inProgress(task) ? () => doInProgress(task) : undefined,
+                          submitDone: can.submitDone(task) ? () => doSubmitDone(task) : undefined,
+                        }}
+                      />
+                    ))}
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        </>
       )}
 
       {/* Modal */}
@@ -628,15 +703,19 @@ function Column({
 }
 
 function TaskCard({
-  task, onEdit, onDelete, draggable, onDragStart, actionsOwner, actionsEmployee,
+  task, onEdit, onDelete, draggable, onDragStart, actionsOwner, actionsEmployee, mobile,
 }: {
   task: Task; onEdit: () => void; onDelete: () => void;
   draggable?: boolean; onDragStart?: (e: React.DragEvent) => void;
   actionsOwner?: { approve?: () => void; returnBack?: () => void };
   actionsEmployee?: { accept?: () => void; decline?: () => void; inProgress?: () => void; submitDone?: () => void };
+  mobile?: boolean;
 }) {
   const p = PRIORITY_STYLE[task.priority];
   const st = STATUS_STYLE[task.status];
+  
+  // Bigger buttons on mobile (20% larger)
+  const btnSize = mobile ? "text-sm px-3 py-1.5" : "text-xs px-2 py-0.5";
   return (
     <div className={`bg-zinc-700 rounded-lg p-3 hover:bg-zinc-600 transition ${st.ring}`} draggable={draggable} onDragStart={onDragStart} title={task.description || ""}>
       <div className="flex justify-between items-start">
@@ -646,19 +725,19 @@ function TaskCard({
       <div className="mt-2 flex flex-wrap gap-2 items-center text-xs">
         <span className={`px-2 py-0.5 rounded-full ${st.badge}`}>{STATUS_CZ[task.status]}</span>
         <span className="text-gray-300">{prettyDate(task.due)}</span>
-        {task.lane && <span className="px-2 py-0.5 rounded-full bg-zinc-600">Sloupec: {task.lane}</span>}
+        {!mobile && task.lane && <span className="px-2 py-0.5 rounded-full bg-zinc-600">Sloupec: {task.lane}</span>}
       </div>
       <div className="flex flex-wrap gap-2 mt-2">
-        {actionsEmployee?.accept && <button className="text-xs bg-blue-600 hover:bg-blue-700 px-2 py-0.5 rounded" onClick={actionsEmployee.accept}>Přijmout</button>}
-        {actionsEmployee?.decline && <button className="text-xs bg-zinc-600 hover:bg-zinc-700 px-2 py-0.5 rounded" onClick={actionsEmployee.decline}>Odmítnout</button>}
-        {actionsEmployee?.inProgress && <button className="text-xs bg-indigo-600 hover:bg-indigo-700 px-2 py-0.5 rounded" onClick={actionsEmployee.inProgress}>Rozpracováno</button>}
-        {actionsEmployee?.submitDone && <button className="text-xs bg-green-600 hover:bg-green-700 px-2 py-0.5 rounded" onClick={actionsEmployee.submitDone}>Odevzdat „Hotovo“</button>}
+        {actionsEmployee?.accept && <button className={`${btnSize} bg-blue-600 hover:bg-blue-700 rounded`} onClick={actionsEmployee.accept}>Přijmout</button>}
+        {actionsEmployee?.decline && <button className={`${btnSize} bg-zinc-600 hover:bg-zinc-700 rounded`} onClick={actionsEmployee.decline}>Odmítnout</button>}
+        {actionsEmployee?.inProgress && <button className={`${btnSize} bg-indigo-600 hover:bg-indigo-700 rounded`} onClick={actionsEmployee.inProgress}>Rozpracováno</button>}
+        {actionsEmployee?.submitDone && <button className={`${btnSize} bg-green-600 hover:bg-green-700 rounded`} onClick={actionsEmployee.submitDone}>Odevzdat „Hotovo“</button>}
 
-        {actionsOwner?.approve && <button className="text-xs bg-amber-600 hover:bg-amber-700 px-2 py-0.5 rounded" onClick={actionsOwner.approve}>Schválit & Archivovat</button>}
-        {actionsOwner?.returnBack && <button className="text-xs bg-orange-600 hover:bg-orange-700 px-2 py-0.5 rounded" onClick={actionsOwner.returnBack}>Vrátit k dopracování</button>}
+        {actionsOwner?.approve && <button className={`${btnSize} bg-amber-600 hover:bg-amber-700 rounded`} onClick={actionsOwner.approve}>Schválit & Archivovat</button>}
+        {actionsOwner?.returnBack && <button className={`${btnSize} bg-orange-600 hover:bg-orange-700 rounded`} onClick={actionsOwner.returnBack}>Vrátit k dopracování</button>}
 
-        <button className="text-xs bg-zinc-600 hover:bg-zinc-700 px-2 py-0.5 rounded" onClick={onEdit}>Upravit</button>
-        <button className="text-xs bg-red-600 hover:bg-red-700 px-2 py-0.5 rounded" onClick={onDelete}>Smazat</button>
+        <button className={`${btnSize} bg-zinc-600 hover:bg-zinc-700 rounded`} onClick={onEdit}>Upravit</button>
+        <button className={`${btnSize} bg-red-600 hover:bg-red-700 rounded`} onClick={onDelete}>Smazat</button>
       </div>
     </div>
   );
