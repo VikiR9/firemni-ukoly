@@ -98,6 +98,22 @@ export default function Home() {
     setCurrentUser(user);
   }, [router]);
 
+  /** --- Refresh when app comes back to foreground --- */
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        // App came back to foreground, refresh tasks
+        fetchTasks();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
+
 
 
   /** --- Načtení lanes z Supabase user_preferences --- */
