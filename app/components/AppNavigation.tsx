@@ -11,6 +11,7 @@ export default function AppNavigation() {
   const navItems = [
     { href: "/", label: "Úkoly", icon: "📋" },
     { href: "/kalkulace", label: "Kalkulace", icon: "🧮" },
+    { href: "/pruzkum", label: "Průzkum", icon: "📊" },
   ];
 
   return (
