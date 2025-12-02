@@ -347,7 +347,7 @@ export default function PruzkumPage() {
       <header className="bg-[#1a1a5c] text-white sticky top-0 z-40 shadow-lg border-b border-blue-900">
         <div className="max-w-[1800px] mx-auto px-6 py-3 flex justify-between items-center">
           <div className="flex items-center gap-4">
-            <LimmitLogo height={28} />
+            <LimmitLogo height={28} variant="light" />
             <div className="h-6 w-px bg-blue-800"></div>
             <h1 className="text-lg font-bold tracking-wide">Průzkum trhu</h1>
           </div>

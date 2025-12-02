@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { loadSession, type User } from "@/lib/auth";
 import { supabase } from "@/lib/supabaseClient";
 import { LimmitLogo } from "@/lib/logo";
+import { DEFAULT_MODULES } from "@/lib/insurance-config";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
@@ -167,13 +168,9 @@ export default function KalkulacePage() {
     brokerEmail: "milos.weber@limmit.cz",
   });
 
-  const [moduleTypes, setModuleTypes] = useState<ModuleType[]>([
-    { id: "m_glass", name: "Skla" },
-    { id: "m_assist", name: "Asistence" },
-    { id: "m_accident", name: "Úraz" },
-    { id: "m_luggage", name: "Zavazadla" },
-    { id: "m_gap", name: "GAP" },
-  ]);
+  const [moduleTypes, setModuleTypes] = useState<ModuleType[]>(
+    DEFAULT_MODULES.map(m => ({ id: m.id, name: m.name }))
+  );
 
   const [offers, setOffers] = useState<Offer[]>([]);
   const [isEditing, setIsEditing] = useState(true);
@@ -527,7 +524,7 @@ export default function KalkulacePage() {
                                         </table>
                                     </td>
                                     <td style="text-align:right;">
-                                        <div style="font-size:12px;color:rgba(255,255,255,0.7);">LIMMIT Insurance Solutions</div>
+                                        <div style="font-size:12px;color:rgba(255,255,255,0.7);">LIMMIT s.r.o.</div>
                                         <div style="font-size:12px;color:rgba(255,255,255,0.5);margin-top:4px;">${currentDate}</div>
                                     </td>
                                 </tr>
@@ -610,7 +607,7 @@ export default function KalkulacePage() {
                     <!-- Bottom Bar -->
                     <tr>
                         <td style="background:#1a1a5c;padding:16px 24px;text-align:center;">
-                            <div style="font-size:11px;color:rgba(255,255,255,0.6);">© ${new Date().getFullYear()} LIMMIT Insurance Solutions | Všechna práva vyhrazena</div>
+                            <div style="font-size:11px;color:rgba(255,255,255,0.6);">© ${new Date().getFullYear()} LIMMIT s.r.o. | Všechna práva vyhrazena</div>
                         </td>
                     </tr>
 
@@ -667,7 +664,7 @@ Tel: ${clientData.brokerPhone}
 E-mail: ${clientData.brokerEmail}
 
 --
-LIMMIT Insurance Solutions`;
+LIMMIT s.r.o.`;
   };
 
   const sendEmail = async () => {
@@ -796,21 +793,18 @@ LIMMIT Insurance Solutions`;
 
     const pdfHtml = `
       <div style="width:${A4_WIDTH_PX}px;height:${A4_HEIGHT_PX}px;max-height:${A4_HEIGHT_PX}px;overflow:hidden;position:relative;background:white;box-sizing:border-box;font-family:Arial,Helvetica,sans-serif;">
-        <div style="background:#1a1a5c;color:white;padding:35px 40px 25px 40px;display:flex;justify-content:space-between;align-items:flex-end;height:120px;">
-          <div style="display:flex;align-items:flex-end;gap:15px;">
-            <div style="display:grid;grid-template-columns:20px 20px;gap:3px;margin-bottom:8px;">
-              <div style="width:20px;height:20px;background:#009ee3;border-radius:4px;"></div>
-              <div style="width:20px;height:20px;background:#ffffff;border-radius:4px;"></div>
-              <div style="width:20px;height:20px;background:#ffffff;border-radius:4px;"></div>
-              <div style="width:20px;height:20px;background:#009ee3;border-radius:4px;"></div>
+        <div style="background:#1a1a5c;color:white;padding:20px 40px;display:flex;justify-content:space-between;align-items:center;height:70px;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="display:grid;grid-template-columns:16px 16px;gap:2px;">
+              <div style="width:16px;height:16px;background:#009ee3;border-radius:3px;"></div>
+              <div style="width:16px;height:16px;background:#ffffff;border-radius:3px;"></div>
+              <div style="width:16px;height:16px;background:#ffffff;border-radius:3px;"></div>
+              <div style="width:16px;height:16px;background:#009ee3;border-radius:3px;"></div>
             </div>
-            <div>
-              <h1 style="font-size:32px;font-weight:bold;margin:0;line-height:1.2;">NABÍDKA<br/>POJIŠTĚNÍ</h1>
-              <p style="font-size:11px;opacity:0.7;margin-top:8px;">LIMMIT Insurance Solutions</p>
-            </div>
+            <span style="font-size:24px;font-weight:bold;">LIMMIT s.r.o.</span>
           </div>
           <div style="text-align:right;">
-            <div style="font-size:11px;opacity:0.7;">${new Date().toLocaleDateString("cs-CZ")}</div>
+            <div style="font-size:12px;">${new Date().toLocaleDateString("cs-CZ")}</div>
           </div>
         </div>
 
@@ -845,7 +839,7 @@ LIMMIT Insurance Solutions`;
             Pojišťovací specialista
           </div>
           <div style="text-align:center;font-size:9px;color:#94a3b8;">
-            LIMMIT Insurance Solutions<br/>
+            LIMMIT s.r.o.<br/>
             © ${new Date().getFullYear()}
           </div>
           <div style="text-align:right;">
@@ -1066,7 +1060,7 @@ LIMMIT Insurance Solutions`;
       <header className="bg-[#1a1a5c] text-white sticky top-0 z-40 shadow-lg border-b border-blue-900">
         <div className="max-w-[1600px] mx-auto px-6 py-3 flex justify-between items-center">
           <div className="flex items-center gap-4">
-            <LimmitLogo height={28} />
+            <LimmitLogo height={28} variant="light" />
             <div className="h-6 w-px bg-blue-800"></div>
             <h1 className="text-lg font-bold tracking-wide">Kalkulátor pojištění</h1>
           </div>
@@ -1228,39 +1222,46 @@ LIMMIT Insurance Solutions`;
                     offer.selected ? "border-[#009ee3] ring-4 ring-blue-900/50 scale-[1.01]" : "border-zinc-600"
                   }`}
                 >
-                  {isEditing && (
-                    <button onClick={() => removeOffer(offer.id)} className="absolute top-3 right-3 text-gray-400 hover:text-red-500 p-1 z-10">
-                      {icons.trash}
-                    </button>
-                  )}
-
                   {/* HEADER */}
                   <div className="p-6 border-b border-zinc-700 bg-zinc-900/50 rounded-t-xl">
-                    {isEditing ? (
-                      <>
-                        <select
-                          value={offer.insurer}
-                          onChange={(e) => handleOfferChange(offer.id, "root", "insurer", e.target.value)}
-                          className="w-full p-2 mb-2 border border-zinc-600 bg-zinc-700 rounded font-bold text-white"
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        {isEditing ? (
+                          <>
+                            <select
+                              value={offer.insurer}
+                              onChange={(e) => handleOfferChange(offer.id, "root", "insurer", e.target.value)}
+                              className="w-full p-2 mb-2 border border-zinc-600 bg-zinc-700 rounded font-bold text-white"
+                            >
+                              {INSURERS.map((i) => (
+                                <option key={i} value={i}>
+                                  {i}
+                                </option>
+                              ))}
+                            </select>
+                            <input
+                              value={offer.title}
+                              onChange={(e) => handleOfferChange(offer.id, "root", "title", e.target.value)}
+                              className="w-1/2 text-sm bg-transparent border-b border-dashed border-zinc-600 outline-none text-gray-400"
+                            />
+                          </>
+                        ) : (
+                          <>
+                            <h3 className="text-xl font-bold text-white mb-1">{offer.insurer}</h3>
+                            <p className="text-sm text-gray-400">{offer.title}</p>
+                          </>
+                        )}
+                      </div>
+                      {isEditing && (
+                        <button 
+                          onClick={() => removeOffer(offer.id)} 
+                          className="ml-2 p-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-all"
+                          title="Odstranit variantu"
                         >
-                          {INSURERS.map((i) => (
-                            <option key={i} value={i}>
-                              {i}
-                            </option>
-                          ))}
-                        </select>
-                        <input
-                          value={offer.title}
-                          onChange={(e) => handleOfferChange(offer.id, "root", "title", e.target.value)}
-                          className="w-1/2 text-sm bg-transparent border-b border-dashed border-zinc-600 outline-none text-gray-400"
-                        />
-                      </>
-                    ) : (
-                      <>
-                        <h3 className="text-xl font-bold text-white mb-1">{offer.insurer}</h3>
-                        <p className="text-sm text-gray-400">{offer.title}</p>
-                      </>
-                    )}
+                          {icons.trash}
+                        </button>
+                      )}
+                    </div>
                     <div className="text-right mt-2">
                       <div className="text-3xl font-bold text-[#009ee3]">{formatCurrency(calculateTotal(offer))}</div>
                       <div className="text-xs font-bold text-gray-400 uppercase tracking-wider">Ročně</div>

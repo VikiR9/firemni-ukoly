@@ -14,16 +14,20 @@ export const LIMMIT_LOGO_SVG = `
 </svg>
 `;
 
-// React component for the logo
-export const LimmitLogo = ({ height = 32, className = "" }: { height?: number; className?: string }) => (
-  <svg viewBox="0 0 250 40" height={height} className={className}>
-    <rect x="0" y="0" width="18" height="18" rx="3" fill="#009ee3"/>
-    <rect x="20" y="0" width="18" height="18" rx="3" fill="#1a1a5c"/>
-    <rect x="0" y="22" width="18" height="18" rx="3" fill="#1a1a5c"/>
-    <rect x="20" y="22" width="18" height="18" rx="3" fill="#009ee3"/>
-    <text x="50" y="32" fontFamily="Arial, sans-serif" fontWeight="bold" fontSize="32" fill="#1a1a5c">LIMMIT</text>
-  </svg>
-);
+// React component for the logo - supports light variant for dark backgrounds
+export const LimmitLogo = ({ height = 32, className = "", variant = "dark" }: { height?: number; className?: string; variant?: "dark" | "light" }) => {
+  const textColor = variant === "light" ? "#ffffff" : "#1a1a5c";
+  const secondaryColor = variant === "light" ? "#ffffff" : "#1a1a5c";
+  return (
+    <svg viewBox="0 0 250 40" height={height} className={className}>
+      <rect x="0" y="0" width="18" height="18" rx="3" fill="#009ee3"/>
+      <rect x="20" y="0" width="18" height="18" rx="3" fill={secondaryColor}/>
+      <rect x="0" y="22" width="18" height="18" rx="3" fill={secondaryColor}/>
+      <rect x="20" y="22" width="18" height="18" rx="3" fill="#009ee3"/>
+      <text x="50" y="32" fontFamily="Arial, sans-serif" fontWeight="bold" fontSize="32" fill={textColor}>LIMMIT</text>
+    </svg>
+  );
+};
 
 // HTML string for email and PDF generation
 export const LIMMIT_LOGO_HTML = `
@@ -53,13 +57,13 @@ export const LIMMIT_LOGO_HTML_SMALL = `
 
 // White version for dark backgrounds
 export const LIMMIT_LOGO_HTML_WHITE = `
-<div style="display:flex;align-items:center;gap:6px;">
-  <div style="display:grid;grid-template-columns:12px 12px;gap:2px;">
-    <div style="width:12px;height:12px;background:#009ee3;border-radius:2px;"></div>
-    <div style="width:12px;height:12px;background:#ffffff;border-radius:2px;"></div>
-    <div style="width:12px;height:12px;background:#ffffff;border-radius:2px;"></div>
-    <div style="width:12px;height:12px;background:#009ee3;border-radius:2px;"></div>
+<div style="display:flex;align-items:center;gap:8px;">
+  <div style="display:grid;grid-template-columns:14px 14px;gap:2px;">
+    <div style="width:14px;height:14px;background:#009ee3;border-radius:2px;"></div>
+    <div style="width:14px;height:14px;background:#ffffff;border-radius:2px;"></div>
+    <div style="width:14px;height:14px;background:#ffffff;border-radius:2px;"></div>
+    <div style="width:14px;height:14px;background:#009ee3;border-radius:2px;"></div>
   </div>
-  <span style="font-family:Arial,sans-serif;font-weight:bold;font-size:18px;color:#ffffff;">LIMMIT</span>
+  <span style="font-family:Arial,sans-serif;font-weight:bold;font-size:20px;color:#ffffff;">LIMMIT s.r.o.</span>
 </div>
 `;

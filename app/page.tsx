@@ -420,7 +420,7 @@ export default function Home() {
       </div>
       <header className="mb-6 flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
         <div className="flex items-center gap-4">
-          <LimmitLogo height={32} />
+          <LimmitLogo height={32} variant="light" />
           <div className="h-8 w-px bg-zinc-700"></div>
           <h1 className="text-2xl font-bold">Přehled úkolů</h1>
         </div>
