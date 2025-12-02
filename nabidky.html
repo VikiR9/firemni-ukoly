@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LIMMIT - Generátor Nabídek</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- PDF & Canvas helpers -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+
+        body { font-family: 'Inter', sans-serif; }
+
+        /* SCREEN STYLES */
+        @media screen {
+            ::-webkit-scrollbar { height: 8px; width: 8px; }
+            ::-webkit-scrollbar-track { background: #f1f1f1; }
+            ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+            ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+            .print-only-visible { display: none !important; }
+        }
+
+        /* PDF / PRINT STYLES - Strict A4 */
+        @media print {
+            @page { margin: 0; size: A4; }
+            html, body { height: 100%; width: 100%; margin: 0; padding: 0; background: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .no-print { display: none !important; }
+            .print-only-visible { display: block !important; }
+            
+            .print-container {
+                width: 210mm;
+                min-height: 297mm;
+                position: relative;
+                background: white;
+                margin: 0 auto;
+                overflow: hidden;
+            }
+
+            /* Corporate Header */
+            .print-header {
+                background-color: #1a1a5c;
+                color: white;
+                padding: 15mm 15mm 10mm 15mm;
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-end;
+                height: 50mm;
+            }
+
+            .print-content {
+                padding: 10mm 15mm;
+            }
+
+            /* Client Box */
+            .client-box {
+                background: #f8fafc;
+                border-left: 2mm solid #009ee3;
+                padding: 5mm;
+                margin-bottom: 10mm;
+            }
+
+            /* Offers Grid */
+            .offers-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(80mm, 1fr));
+                gap: 5mm;
+            }
+
+            .offer-card {
+                border: 1px solid #e2e8f0;
+                border-radius: 4mm;
+                overflow: hidden;
+                background: white;
+                page-break-inside: avoid;
+            }
+
+            .offer-card.recommended {
+                border: 1px solid #009ee3;
+                box-shadow: 0 0 0 1px #009ee3;
+            }
+
+            .offer-header {
+                background: #f1f5f9;
+                padding: 5mm;
+                text-align: center;
+                border-bottom: 1px solid #e2e8f0;
+            }
+
+            .offer-badge {
+                background: #009ee3;
+                color: white;
+                text-align: center;
+                font-size: 8pt;
+                font-weight: bold;
+                text-transform: uppercase;
+                padding: 1mm;
+            }
+
+            .print-footer {
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                padding: 10mm 15mm;
+                border-top: 1px solid #e2e8f0;
+                display: flex;
+                justify-content: space-between;
+                font-size: 9pt;
+                color: #64748b;
+                background: white;
+            }
+            
+            .row {
+                display: flex;
+                justify-content: space-between;
+                padding: 2mm 0;
+                border-bottom: 1px dashed #e2e8f0;
+                font-size: 9pt;
+            }
+            .row:last-child { border-bottom: none; }
+            .row-label { font-weight: 600; color: #334155; }
+            .row-value { font-weight: 700; color: #0f172a; text-align: right; }
+            .row-sub { font-size: 8pt; color: #64748b; font-weight: normal; display: block; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // --- ICONS ---
+        const iconMap = {
+            Shield: 'shield', Car: 'car-front', User: 'user', Check: 'check', 
+            Edit2: 'edit-2', FileText: 'file-text', ChevronRight: 'chevron-right', 
+            Printer: 'printer', Info: 'info', Save: 'save', Upload: 'upload', 
+            Mail: 'mail', Copy: 'copy', CheckCircle: 'check-circle', Plus: 'plus', 
+            Trash2: 'trash-2', X: 'x', Settings: 'settings', RefreshCw: 'refresh-cw'
+        };
+
+        const Icon = ({ name, size = 20, className = "" }) => {
+            const [svgHtml, setSvgHtml] = useState('');
+            useEffect(() => {
+                const iconName = iconMap[name] || 'help-circle';
+                const iconDef = lucide.icons[iconName];
+                if (iconDef) setSvgHtml(iconDef.toSvg({ width: size, height: size, class: className }));
+            }, [name, size, className]);
+            return <span dangerouslySetInnerHTML={{ __html: svgHtml }} style={{ display: 'inline-flex', verticalAlign: 'middle' }} />;
+        };
+
+        const INSURERS = [
+            "Allianz pojišťovna, a.s.",
+            "Česká podnikatelská pojišťovna, a.s.",
+            "ČSOB Pojišťovna, a. s.",
+            "Direct pojišťovna, a.s.",
+            "Generali Česká pojišťovna a.s.",
+            "Kooperativa pojišťovna, a.s.",
+            "Pillow pojišťovna, a.s.",
+            "Pojišťovna VZP, a.s.",
+            "Slavia pojišťovna a.s.",
+            "UNIQA pojišťovna, a.s."
+        ];
+
+        // --- APP COMPONENT ---
+        const InsuranceApp = () => {
+            // --- STATE ---
+            const [clientData, setClientData] = useState({
+                name: "",
+                address: "",
+                car: "",
+                carValue: "",
+                brokerName: "Bc. Miloš Weber",
+                brokerPhone: "777 557 253",
+                brokerEmail: "milos.weber@limmit.cz"
+            });
+
+            const [moduleTypes, setModuleTypes] = useState([
+                { id: 'm_glass', name: 'Skla' },
+                { id: 'm_assist', name: 'Asistence' },
+                { id: 'm_accident', name: 'Úraz' },
+                { id: 'm_luggage', name: 'Zavazadla' },
+                { id: 'm_gap', name: 'GAP' }
+            ]);
+
+            const [offers, setOffers] = useState([]);
+            const [isEditing, setIsEditing] = useState(true);
+            const [activeTab, setActiveTab] = useState('offer');
+            const [notification, setNotification] = useState(null);
+            const [newModuleTypeName, setNewModuleTypeName] = useState('');
+
+            // --- INITIALIZATION & PERSISTENCE ---
+            useEffect(() => {
+                const saved = localStorage.getItem('limmit_data_v4');
+                if (saved) {
+                    try {
+                        const data = JSON.parse(saved);
+                        setClientData(data.clientData);
+                        setModuleTypes(data.moduleTypes);
+                        setOffers(data.offers);
+                        setIsEditing(false); // Start in view mode if data exists
+                        showNotification("Data byla obnovena z paměti.");
+                    } catch (e) { console.error("Load error", e); }
+                } else {
+                    // Default init if empty
+                    handleNewCalculation();
+                }
+            }, []);
+
+            // Auto-save whenever critical data changes
+            useEffect(() => {
+                if (offers.length > 0) {
+                    const data = { clientData, moduleTypes, offers, timestamp: Date.now() };
+                    localStorage.setItem('limmit_data_v4', JSON.stringify(data));
+                }
+            }, [clientData, moduleTypes, offers]);
+
+            // --- HELPERS ---
+            const showNotification = (msg, type = 'success') => {
+                setNotification({ msg, type });
+                setTimeout(() => setNotification(null), 4000);
+            };
+
+            const formatCurrency = (value) => {
+                if (!value && value !== 0) return '-';
+                return new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 }).format(value);
+            };
+
+            const calculateTotal = (offer) => {
+                let total = 0;
+                if (offer.liability.active) total += Number(offer.liability.price || 0);
+                if (offer.allrisk.active) total += Number(offer.allrisk.price || 0);
+                Object.keys(offer.modules || {}).forEach(key => {
+                    const m = offer.modules[key];
+                    if (m.active) total += Number(m.price || 0);
+                });
+                return total;
+            };
+
+            // --- ACTIONS ---
+            const handleNewCalculation = () => {
+                if (confirm("Opravdu chcete začít novou kalkulaci? Všechna data budou vymazána.")) {
+                    setClientData(prev => ({ ...prev, name: "", address: "", car: "", carValue: "" })); // Keep broker info
+                    setOffers([
+                        createEmptyOffer(1, "Varianta A"),
+                        createEmptyOffer(2, "Varianta B")
+                    ]);
+                    setIsEditing(true);
+                    setActiveTab('offer');
+                    showNotification("Nová kalkulace připravena.");
+                }
+            };
+
+            const createEmptyOffer = (id, title) => ({
+                id: id || Date.now(),
+                insurer: INSURERS[0],
+                title: title || "Nová varianta",
+                liability: { active: true, limit: "35", price: 0 }, // Limit is just number
+                allrisk: { active: true, limit: 0, pct: 5, min: 5000, price: 0 },
+                modules: {},
+                selected: false
+            });
+
+            const addOffer = () => setOffers(prev => [...prev, createEmptyOffer(Date.now(), `Varianta ${prev.length + 1}`)]);
+            
+            const removeOffer = (id) => {
+                if (offers.length <= 1) return showNotification("Musí zůstat alespoň jedna varianta.", "error");
+                setOffers(prev => prev.filter(o => o.id !== id));
+            };
+
+            const handleOfferChange = (id, section, field, value) => {
+                setOffers(prev => prev.map(o => {
+                    if (o.id !== id) return o;
+                    if (section === 'root') return { ...o, [field]: value };
+                    return { ...o, [section]: { ...o[section], [field]: value } };
+                }));
+            };
+
+            // Module Logic
+            const addModuleType = () => {
+                if (!newModuleTypeName.trim()) return;
+                setModuleTypes(prev => [...prev, { id: 'm_' + Date.now(), name: newModuleTypeName }]);
+                setNewModuleTypeName('');
+            };
+            
+            const removeModuleType = (id) => setModuleTypes(prev => prev.filter(m => m.id !== id));
+
+            const handleModuleChange = (offerId, modId, field, value) => {
+                setOffers(prev => prev.map(o => {
+                    if (o.id !== offerId) return o;
+                    const current = o.modules[modId] || { active: false, price: 0, limit: '' };
+                    
+                    let updated = { ...current };
+                    if (field === 'active') updated = { ...updated, active: !updated.active };
+                    else updated = { ...updated, [field]: value };
+
+                    return { ...o, modules: { ...o.modules, [modId]: updated } };
+                }));
+            };
+
+            // --- EXPORT LOGIC ---
+            const buildEmailHtml = (selectedOffer) => {
+                const currentDate = new Date().toLocaleDateString('cs-CZ', { day: 'numeric', month: 'long', year: 'numeric' });
+                
+                // Build offer cards HTML
+                const offerCardsHtml = offers.map((o) => {
+                    const total = calculateTotal(o);
+                    const isSelected = o.id === selectedOffer.id;
+                    const cardBorder = isSelected ? '2px solid #009ee3' : '1px solid #e2e8f0';
+                    const cardBg = isSelected ? '#f0f9ff' : '#ffffff';
+                    
+                    const modulesHtml = Object.entries(o.modules || {})
+                        .filter(([, m]) => m.active)
+                        .map(([key, m]) => {
+                            const moduleType = moduleTypes.find((t) => t.id === key);
+                            const label = moduleType?.name || 'Připojištění';
+                            return `<tr><td style="padding:4px 8px;font-size:12px;color:#64748b;">${label}${m.limit ? ` (${m.limit})` : ''}</td><td style="padding:4px 8px;font-size:12px;color:#334155;text-align:right;">${formatCurrency(m.price)}</td></tr>`;
+                        }).join('');
+
+                    return `
+                        <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px;border:${cardBorder};border-radius:8px;background:${cardBg};overflow:hidden;">
+                            ${isSelected ? `<tr><td colspan="2" style="background:#009ee3;color:#ffffff;padding:6px 12px;font-size:11px;font-weight:bold;text-transform:uppercase;text-align:center;">✓ Doporučená varianta</td></tr>` : ''}
+                            <tr>
+                                <td colspan="2" style="padding:16px;border-bottom:1px solid #e2e8f0;">
+                                    <div style="font-size:16px;font-weight:bold;color:#1a1a5c;margin-bottom:4px;">${o.insurer}</div>
+                                    <div style="font-size:12px;color:#64748b;">${o.title}</div>
+                                </td>
+                            </tr>
+                            ${o.liability.active ? `
+                            <tr>
+                                <td style="padding:8px 16px;font-size:13px;color:#334155;font-weight:500;">Povinné ručení (${o.liability.limit} mil. Kč)</td>
+                                <td style="padding:8px 16px;font-size:13px;color:#1e293b;font-weight:bold;text-align:right;">${formatCurrency(o.liability.price)}</td>
+                            </tr>` : ''}
+                            ${o.allrisk.active ? `
+                            <tr>
+                                <td style="padding:8px 16px;font-size:13px;color:#334155;font-weight:500;">Havarijní (${o.allrisk.pct}% / min. ${formatCurrency(o.allrisk.min)})</td>
+                                <td style="padding:8px 16px;font-size:13px;color:#1e293b;font-weight:bold;text-align:right;">${formatCurrency(o.allrisk.price)}</td>
+                            </tr>` : ''}
+                            ${modulesHtml ? `<tr><td colspan="2" style="padding:0;"><table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;">${modulesHtml}</table></td></tr>` : ''}
+                            <tr>
+                                <td colspan="2" style="padding:16px;background:${isSelected ? '#009ee3' : '#1a1a5c'};text-align:center;">
+                                    <div style="font-size:24px;font-weight:bold;color:#ffffff;">${formatCurrency(total)}</div>
+                                    <div style="font-size:11px;color:rgba(255,255,255,0.8);text-transform:uppercase;">ročně</div>
+                                </td>
+                            </tr>
+                        </table>
+                    `;
+                }).join('');
+
+                return `
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nabídka pojištění - ${clientData.name || 'Klient'}</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f1f5f9;font-family:Arial,Helvetica,sans-serif;">
+    <!-- Email Wrapper -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f1f5f9;padding:20px 0;">
+        <tr>
+            <td align="center">
+                <!-- Main Container -->
+                <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background-color:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 6px rgba(0,0,0,0.1);">
+                    
+                    <!-- Header -->
+                    <tr>
+                        <td style="background:linear-gradient(135deg,#1a1a5c 0%,#2d2d7a 100%);padding:32px 24px;text-align:center;">
+                            <table width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td style="text-align:left;">
+                                        <div style="font-size:28px;font-weight:bold;color:#ffffff;line-height:1.2;">NABÍDKA</div>
+                                        <div style="font-size:28px;font-weight:bold;color:#009ee3;line-height:1.2;">POJIŠTĚNÍ</div>
+                                    </td>
+                                    <td style="text-align:right;">
+                                        <div style="font-size:12px;color:rgba(255,255,255,0.7);">LIMMIT Insurance Solutions</div>
+                                        <div style="font-size:12px;color:rgba(255,255,255,0.5);margin-top:4px;">${currentDate}</div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Greeting -->
+                    <tr>
+                        <td style="padding:24px 24px 16px 24px;">
+                            <p style="margin:0 0 12px 0;font-size:15px;color:#334155;line-height:1.6;">Dobrý den,</p>
+                            <p style="margin:0;font-size:15px;color:#334155;line-height:1.6;">zasílám Vám nabídku pojištění pro vozidlo <strong style="color:#1a1a5c;">${clientData.car || '–'}</strong>. V příloze naleznete PDF dokument s kompletním přehledem na jednu stranu A4.</p>
+                        </td>
+                    </tr>
+
+                    <!-- Client Info Box -->
+                    <tr>
+                        <td style="padding:0 24px 24px 24px;">
+                            <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;border-left:4px solid #009ee3;border-radius:0 8px 8px 0;">
+                                <tr>
+                                    <td style="padding:16px;">
+                                        <div style="font-size:11px;font-weight:bold;color:#64748b;text-transform:uppercase;margin-bottom:8px;">Údaje klienta</div>
+                                        <div style="font-size:15px;font-weight:bold;color:#1a1a5c;margin-bottom:4px;">${clientData.name || '–'}</div>
+                                        <div style="font-size:13px;color:#64748b;">${clientData.address || ''}</div>
+                                        ${clientData.carValue ? `<div style="font-size:13px;color:#009ee3;font-weight:bold;margin-top:8px;">Pojistná částka: ${formatCurrency(clientData.carValue)}</div>` : ''}
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Offer Cards -->
+                    <tr>
+                        <td style="padding:0 24px;">
+                            <div style="font-size:11px;font-weight:bold;color:#64748b;text-transform:uppercase;margin-bottom:12px;">Přehled variant</div>
+                            ${offerCardsHtml}
+                        </td>
+                    </tr>
+
+                    <!-- CTA Section -->
+                    <tr>
+                        <td style="padding:24px;text-align:center;">
+                            <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f9ff;border-radius:8px;border:1px dashed #009ee3;">
+                                <tr>
+                                    <td style="padding:20px;">
+                                        <div style="font-size:14px;color:#1a1a5c;font-weight:bold;margin-bottom:8px;">📎 V příloze naleznete PDF dokument</div>
+                                        <div style="font-size:13px;color:#64748b;">Obsahuje podrobný rozpis všech variant na jedné stránce A4.</div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Divider -->
+                    <tr>
+                        <td style="padding:0 24px;">
+                            <div style="height:1px;background:#e2e8f0;"></div>
+                        </td>
+                    </tr>
+
+                    <!-- Footer / Contact -->
+                    <tr>
+                        <td style="padding:24px;">
+                            <table width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td style="vertical-align:top;">
+                                        <div style="font-size:11px;font-weight:bold;color:#64748b;text-transform:uppercase;margin-bottom:8px;">Váš poradce</div>
+                                        <div style="font-size:15px;font-weight:bold;color:#1a1a5c;">${clientData.brokerName}</div>
+                                        <div style="font-size:13px;color:#64748b;margin-top:4px;">Pojišťovací specialista</div>
+                                    </td>
+                                    <td style="vertical-align:top;text-align:right;">
+                                        <div style="font-size:13px;color:#1a1a5c;margin-bottom:4px;">📞 ${clientData.brokerPhone}</div>
+                                        <div style="font-size:13px;color:#009ee3;">✉️ ${clientData.brokerEmail}</div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Bottom Bar -->
+                    <tr>
+                        <td style="background:#1a1a5c;padding:16px 24px;text-align:center;">
+                            <div style="font-size:11px;color:rgba(255,255,255,0.6);">© ${new Date().getFullYear()} LIMMIT Insurance Solutions | Všechna práva vyhrazena</div>
+                        </td>
+                    </tr>
+
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+                `;
+            };
+
+            const buildEmailText = (selectedOffer) => {
+                const offersText = offers
+                    .map((o) => {
+                        const total = calculateTotal(o);
+                        const parts = [];
+                        parts.push(`${o.title} - ${o.insurer}`);
+                        if (o.liability.active) parts.push(`POV: ${o.liability.limit} mil.`);
+                        if (o.allrisk.active) parts.push(`Havarijní: ${o.allrisk.pct}% / min ${o.allrisk.min} Kč`);
+                        const modules = Object.entries(o.modules || {})
+                            .filter(([, m]) => m.active)
+                            .map(([key, m]) => {
+                                const moduleType = moduleTypes.find((t) => t.id === key);
+                                const label = moduleType?.name || 'Připojištění';
+                                return `${label} ${m.limit || ''} ${formatCurrency(m.price)}`.trim();
+                            });
+                        if (modules.length) parts.push(`Připojištění: ${modules.join('; ')}`);
+                        parts.push(`Cena: ${formatCurrency(total)}/rok`);
+                        return `- ${parts.join(' | ')}`;
+                    })
+                    .join('\n');
+
+                return `Dobrý den,
+
+zasílám Vám nabídku pojištění pro vozidlo ${clientData.car || ''}.
+
+KLIENT: ${clientData.name || ''}
+${clientData.address ? `ADRESA: ${clientData.address}` : ''}
+${clientData.carValue ? `POJISTNÁ ČÁSTKA: ${formatCurrency(clientData.carValue)}` : ''}
+
+PŘEHLED VARIANT:
+${offersText}
+
+DOPORUČENÁ VARIANTA: ${selectedOffer.insurer}, ${formatCurrency(calculateTotal(selectedOffer))}/rok.
+
+V příloze naleznete PDF dokument s kompletním přehledem na jedné stránce A4.
+
+S pozdravem,
+
+${clientData.brokerName}
+Pojišťovací specialista
+Tel: ${clientData.brokerPhone}
+E-mail: ${clientData.brokerEmail}
+
+--
+LIMMIT Insurance Solutions`;
+            };
+
+            const generatePdfAttachment = async () => {
+                // A4 dimensions in pixels at 96 DPI
+                const A4_WIDTH_PX = 794;  // 210mm
+                const A4_HEIGHT_PX = 1123; // 297mm
+
+                // Build PDF HTML content dynamically
+                const offersHtml = offers.slice(0, 4).map(offer => {
+                    const modulesHtml = moduleTypes.map(t => {
+                        const m = offer.modules[t.id];
+                        if (!m || !m.active) return '';
+                        return `<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:9px;border-bottom:1px dotted #e2e8f0;">
+                            <span style="color:#475569;font-weight:500;">${t.name}${m.limit ? ` <span style="color:#94a3b8;font-weight:400;">(${m.limit})</span>` : ''}</span>
+                            <span style="font-weight:600;color:#1e293b;">${formatCurrency(m.price)}</span>
+                        </div>`;
+                    }).join('');
+
+                    return `
+                        <div style="border:${offer.selected ? '2px solid #009ee3' : '1px solid #e2e8f0'};border-radius:8px;overflow:hidden;background:white;${offer.selected ? 'box-shadow:0 0 0 2px rgba(0,158,227,0.2);' : ''}">
+                            ${offer.selected ? '<div style="background:#009ee3;color:white;text-align:center;font-size:8px;font-weight:bold;text-transform:uppercase;padding:4px;letter-spacing:0.5px;">★ DOPORUČENÁ VOLBA</div>' : ''}
+                            <div style="background:#f8fafc;padding:12px 10px;text-align:center;border-bottom:1px solid #e2e8f0;">
+                                <div style="font-size:12px;font-weight:bold;color:#1a1a5c;margin-bottom:2px;line-height:1.2;">${offer.insurer}</div>
+                                <div style="font-size:9px;color:#64748b;margin-bottom:6px;">${offer.title}</div>
+                                <div style="font-size:22px;font-weight:bold;color:#009ee3;">${formatCurrency(calculateTotal(offer))}</div>
+                                <div style="font-size:8px;color:#94a3b8;text-transform:uppercase;font-weight:bold;letter-spacing:0.5px;">Ročně</div>
+                            </div>
+                            <div style="padding:12px;">
+                                ${offer.liability.active ? `
+                                <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:10px;margin-bottom:8px;">
+                                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                                        <span style="font-weight:700;color:#166534;font-size:11px;">🛡️ POVINNÉ RUČENÍ</span>
+                                        <span style="font-weight:800;color:#166534;font-size:13px;">${formatCurrency(offer.liability.price)}</span>
+                                    </div>
+                                    <div style="display:flex;justify-content:space-between;background:white;border-radius:4px;padding:6px 8px;">
+                                        <span style="font-size:9px;color:#64748b;">Limit plnění:</span>
+                                        <span style="font-size:10px;font-weight:700;color:#0f172a;">${offer.liability.limit} mil. Kč</span>
+                                    </div>
+                                </div>` : ''}
+                                ${offer.allrisk.active ? `
+                                <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:10px;margin-bottom:8px;">
+                                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                                        <span style="font-weight:700;color:#1e40af;font-size:11px;">🚗 HAVARIJNÍ</span>
+                                        <span style="font-weight:800;color:#1e40af;font-size:13px;">${formatCurrency(offer.allrisk.price)}</span>
+                                    </div>
+                                    <div style="background:white;border-radius:4px;padding:6px 8px;">
+                                        <div style="display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px dashed #e2e8f0;">
+                                            <span style="font-size:9px;color:#64748b;">Pojistná částka:</span>
+                                            <span style="font-size:10px;font-weight:700;color:#0f172a;">${formatCurrency(offer.allrisk.limit)}</span>
+                                        </div>
+                                        <div style="display:flex;justify-content:space-between;padding:2px 0;">
+                                            <span style="font-size:9px;color:#64748b;">Spoluúčast:</span>
+                                            <span style="font-size:10px;font-weight:700;color:#0f172a;">${offer.allrisk.pct}% / min. ${new Intl.NumberFormat('cs-CZ').format(offer.allrisk.min)} Kč</span>
+                                        </div>
+                                    </div>
+                                </div>` : ''}
+                                ${modulesHtml ? `
+                                <div style="margin-top:6px;">
+                                    <div style="font-size:8px;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:4px;letter-spacing:0.5px;">Připojištění</div>
+                                    ${modulesHtml}
+                                </div>` : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                const pdfHtml = `
+                    <div style="width:${A4_WIDTH_PX}px;height:${A4_HEIGHT_PX}px;max-height:${A4_HEIGHT_PX}px;overflow:hidden;position:relative;background:white;box-sizing:border-box;font-family:Arial,Helvetica,sans-serif;">
+                        <div style="background:#1a1a5c;color:white;padding:35px 40px 25px 40px;display:flex;justify-content:space-between;align-items:flex-end;height:120px;">
+                            <div>
+                                <h1 style="font-size:32px;font-weight:bold;margin:0;line-height:1.2;">NABÍDKA<br/>POJIŠTĚNÍ</h1>
+                                <p style="font-size:11px;opacity:0.7;margin-top:8px;">LIMMIT Insurance Solutions</p>
+                            </div>
+                            <div style="text-align:right;">
+                                <div style="font-size:11px;opacity:0.7;">${new Date().toLocaleDateString('cs-CZ')}</div>
+                            </div>
+                        </div>
+
+                        <div style="padding:25px 40px 20px 40px;">
+                            <div style="background:#f8fafc;border-left:5px solid #009ee3;padding:12px 15px;margin-bottom:20px;">
+                                <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px dashed #e2e8f0;font-size:11px;">
+                                    <span style="font-weight:600;color:#334155;">Klient</span>
+                                    <span style="font-weight:700;color:#0f172a;">${clientData.name || '–'}</span>
+                                </div>
+                                <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px dashed #e2e8f0;font-size:11px;">
+                                    <span style="font-weight:600;color:#334155;">Vozidlo</span>
+                                    <span style="font-weight:700;color:#0f172a;">${clientData.car || '–'}</span>
+                                </div>
+                                <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px dashed #e2e8f0;font-size:11px;">
+                                    <span style="font-weight:600;color:#334155;">Pojistná částka</span>
+                                    <span style="font-weight:700;color:#009ee3;">${formatCurrency(clientData.carValue)}</span>
+                                </div>
+                                <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:11px;">
+                                    <span style="font-weight:600;color:#334155;">Adresa</span>
+                                    <span style="font-weight:700;color:#0f172a;">${clientData.address || '–'}</span>
+                                </div>
+                            </div>
+
+                            <div style="display:grid;grid-template-columns:repeat(${offers.length <= 2 ? 2 : 3}, 1fr);gap:12px;">
+                                ${offersHtml}
+                            </div>
+                        </div>
+
+                        <div style="position:absolute;bottom:0;left:0;right:0;padding:15px 40px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;font-size:10px;color:#64748b;background:white;">
+                            <div>
+                                <strong style="color:#1a1a5c;">${clientData.brokerName}</strong><br/>
+                                Pojišťovací specialista
+                            </div>
+                            <div style="text-align:center;font-size:9px;color:#94a3b8;">
+                                LIMMIT Insurance Solutions<br/>
+                                © ${new Date().getFullYear()}
+                            </div>
+                            <div style="text-align:right;">
+                                ${clientData.brokerPhone}<br/>
+                                <span style="color:#009ee3;">${clientData.brokerEmail}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Create temporary container
+                const container = document.createElement('div');
+                container.innerHTML = pdfHtml;
+                container.style.cssText = `
+                    position: fixed;
+                    left: -9999px;
+                    top: 0;
+                    width: ${A4_WIDTH_PX}px;
+                    height: ${A4_HEIGHT_PX}px;
+                    background: white;
+                    z-index: -9999;
+                    visibility: visible;
+                    opacity: 1;
+                `;
+                document.body.appendChild(container);
+
+                // Wait for render
+                await new Promise(resolve => setTimeout(resolve, 200));
+
+                // Get the actual element to render
+                const elementToRender = container.querySelector('div');
+                if (!elementToRender) {
+                    document.body.removeChild(container);
+                    throw new Error('PDF element not found');
+                }
+
+                // Render canvas
+                let canvas;
+                try {
+                    canvas = await html2canvas(elementToRender, { 
+                        scale: 3,  // Higher scale for sharper text
+                        useCORS: true, 
+                        backgroundColor: '#ffffff',
+                        width: A4_WIDTH_PX,
+                        height: A4_HEIGHT_PX,
+                        logging: false,
+                        allowTaint: true,
+                        imageTimeout: 0,
+                        removeContainer: false
+                    });
+                } catch (canvasError) {
+                    document.body.removeChild(container);
+                    throw new Error('Canvas render failed: ' + canvasError.message);
+                }
+                
+                document.body.removeChild(container);
+
+                if (!canvas || canvas.width === 0 || canvas.height === 0) {
+                    throw new Error('Canvas is empty');
+                }
+
+                const imgData = canvas.toDataURL('image/png', 1.0);
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({ 
+                    orientation: 'portrait', 
+                    unit: 'mm', 
+                    format: 'a4',
+                    compress: false,  // Disable compression for better quality
+                    putOnlyUsedFonts: true,
+                    floatPrecision: 16
+                });
+                
+                // Exact A4 dimensions
+                const pageWidth = 210;
+                const pageHeight = 297;
+                
+                // Add image to fill exactly one A4 page with high quality
+                pdf.addImage(imgData, 'PNG', 0, 0, pageWidth, pageHeight, undefined, 'NONE');
+                
+                const clientName = (clientData.name || 'klient').replace(/[^a-zA-Z0-9\u00C0-\u024F]/g, '_');
+                const dateStr = new Date().toISOString().slice(0, 10);
+                const fileName = `Nabidka_${clientName}_${dateStr}.pdf`;
+                
+                const blob = pdf.output('blob');
+                return { blob, fileName, pdf };
+            };
+
+            const downloadPdf = async () => {
+                try {
+                    const result = await generatePdfAttachment();
+                    result.pdf.save(result.fileName);
+                    showNotification('PDF bylo úspěšně staženo.', 'success');
+                } catch (err) {
+                    console.error('PDF generation error:', err);
+                    showNotification('Nepodařilo se vygenerovat PDF: ' + err.message, 'error');
+                }
+            };
+
+            const sendEmail = async () => {
+                const selectedOffer = offers.find((o) => o.selected) || offers[0];
+                if (!selectedOffer) {
+                    showNotification('Chybí data nabídek pro export.', 'error');
+                    return;
+                }
+
+                let pdfFile = null;
+                try {
+                    pdfFile = await generatePdfAttachment();
+                    // Always save PDF first
+                    pdfFile.pdf.save(pdfFile.fileName);
+                } catch (err) {
+                    console.error(err);
+                    showNotification('PDF se nepodařilo připravit.', 'error');
+                }
+
+                const subject = `Nabídka pojištění - ${clientData.name || clientData.car || 'Klient'}`;
+                const htmlBody = buildEmailHtml(selectedOffer);
+                const textBody = buildEmailText(selectedOffer);
+
+                // Try Web Share API with file attachment (mobile-friendly)
+                if (pdfFile) {
+                    try {
+                        const shareFile = new File([pdfFile.blob], pdfFile.fileName, { type: 'application/pdf' });
+                        if (navigator.canShare && navigator.canShare({ files: [shareFile] })) {
+                            await navigator.share({ 
+                                files: [shareFile], 
+                                title: subject, 
+                                text: textBody 
+                            });
+                            showNotification('E-mail s PDF přílohou byl připraven k odeslání.', 'success');
+                            return;
+                        }
+                    } catch (err) {
+                        if (err.name !== 'AbortError') {
+                            console.error('Share API failed:', err);
+                        }
+                    }
+                }
+
+                // Fallback: mailto with plain text (HTML not supported in mailto)
+                const mailtoBody = textBody + '\n\n---\nPoznámka: PDF příloha byla stažena do složky Stažené soubory. Prosím, přiložte ji k tomuto e-mailu ručně.';
+                const mailtoUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(mailtoBody)}`;
+                window.location.href = mailtoUrl;
+                
+                if (pdfFile) {
+                    showNotification('PDF bylo staženo. Přiložte ho prosím k e-mailu ručně.', 'info');
+                } else {
+                    showNotification('Otevírám e-mail bez PDF přílohy.', 'info');
+                }
+            };
+
+            const copyEmailHtml = async () => {
+                const selectedOffer = offers.find((o) => o.selected) || offers[0];
+                if (!selectedOffer) {
+                    showNotification('Chybí data nabídek.', 'error');
+                    return;
+                }
+                
+                const htmlBody = buildEmailHtml(selectedOffer);
+                
+                try {
+                    // Try to copy HTML as rich text
+                    const blob = new Blob([htmlBody], { type: 'text/html' });
+                    const data = new ClipboardItem({
+                        'text/html': blob,
+                        'text/plain': new Blob([buildEmailText(selectedOffer)], { type: 'text/plain' })
+                    });
+                    await navigator.clipboard.write([data]);
+                    showNotification('HTML obsah emailu zkopírován do schránky.', 'success');
+                } catch (err) {
+                    // Fallback to plain text
+                    try {
+                        await navigator.clipboard.writeText(buildEmailText(selectedOffer));
+                        showNotification('Text emailu zkopírován do schránky (bez formátování).', 'success');
+                    } catch (e) {
+                        showNotification('Kopírování se nezdařilo.', 'error');
+                    }
+                }
+            };
+
+            return (
+                <div className="min-h-screen font-sans bg-slate-50">
+                    {/* NOTIFICATION */}
+                    {notification && (
+                        <div className={`fixed top-6 left-1/2 transform -translate-x-1/2 z-50 px-6 py-4 rounded-xl shadow-2xl text-white flex items-center gap-3 font-medium animate-fade-in ${notification.type === 'error' ? 'bg-red-500' : 'bg-green-600'}`}>
+                            <Icon name={notification.type === 'error' ? 'Info' : 'CheckCircle'} size={24} /> 
+                            {notification.msg}
+                        </div>
+                    )}
+
+                    {/* APP HEADER (No Print) */}
+                    <header className="bg-[#1a1a5c] text-white sticky top-0 z-40 no-print shadow-lg border-b border-blue-900"> 
+                        <div className="max-w-[1600px] mx-auto px-6 py-3 flex justify-between items-center">
+                            <div className="flex items-center gap-4">
+                                <img src="logo_limmit_aktual.png" alt="LIMMIT" className="h-8 w-auto opacity-90" />
+                                <div className="h-6 w-px bg-blue-800"></div>
+                                <h1 className="text-lg font-bold tracking-wide">Kalkulátor</h1>
+                            </div>
+                            <div className="flex gap-3">
+                                <button onClick={handleNewCalculation} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500/10 text-red-100 hover:bg-red-500/20 hover:text-white transition-all text-sm font-medium">
+                                    <Icon name="RefreshCw" size={16} /> Nová kalkulace
+                                </button>
+                                <div className="h-8 w-px bg-blue-800 mx-1"></div>
+                                <button onClick={() => setActiveTab('offer')} className={`px-4 py-2 rounded-lg transition-all text-sm font-medium flex items-center gap-2 ${activeTab === 'offer' ? 'bg-[#009ee3] text-white shadow-md transform scale-105' : 'text-blue-200 hover:bg-white/5'}`}>
+                                    <Icon name="Edit2" size={16} /> Editace
+                                </button>
+                                <button onClick={() => setActiveTab('preview')} className={`px-4 py-2 rounded-lg transition-all text-sm font-medium flex items-center gap-2 ${activeTab === 'preview' ? 'bg-[#009ee3] text-white shadow-md transform scale-105' : 'text-blue-200 hover:bg-white/5'}`}>
+                                    <Icon name="Printer" size={16} /> Náhled & Export
+                                </button>
+                            </div>
+                        </div>
+                    </header>
+
+                    <main className="max-w-[1600px] mx-auto p-6">
+                        
+                        {/* CLIENT FORM (Toggleable Edit) */}
+                        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-8 no-print">
+                            <div className="flex justify-between items-center mb-6">
+                                <h2 className="text-lg font-bold text-[#1a1a5c] flex items-center gap-2"><Icon name="User" size={20}/> Údaje o klientovi</h2>
+                                <button onClick={() => setIsEditing(!isEditing)} className="text-[#009ee3] text-sm font-semibold hover:underline">{isEditing ? 'Ukončit úpravy' : 'Upravit údaje'}</button>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Jméno a Příjmení</label>
+                                    {isEditing ? <input value={clientData.name} onChange={(e) => setClientData({...clientData, name: e.target.value})} className="w-full p-2 bg-slate-50 border border-slate-200 rounded focus:ring-2 focus:ring-blue-500 outline-none font-medium" /> : <p className="text-lg font-semibold text-slate-800">{clientData.name}</p>}
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Vozidlo</label>
+                                    {isEditing ? <input value={clientData.car} onChange={(e) => setClientData({...clientData, car: e.target.value})} className="w-full p-2 bg-slate-50 border border-slate-200 rounded focus:ring-2 focus:ring-blue-500 outline-none font-medium" /> : <p className="text-lg font-semibold text-slate-800">{clientData.car}</p>}
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Pojistná částka</label>
+                                    {isEditing ? <input type="number" value={clientData.carValue} onChange={(e) => setClientData({...clientData, carValue: e.target.value})} className="w-full p-2 bg-slate-50 border border-slate-200 rounded focus:ring-2 focus:ring-blue-500 outline-none font-medium" placeholder="Kč" /> : <p className="text-lg font-bold text-[#009ee3]">{formatCurrency(clientData.carValue)}</p>}
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Adresa</label>
+                                    {isEditing ? <input value={clientData.address} onChange={(e) => setClientData({...clientData, address: e.target.value})} className="w-full p-2 bg-slate-50 border border-slate-200 rounded focus:ring-2 focus:ring-blue-500 outline-none font-medium" /> : <p className="text-base text-slate-600">{clientData.address}</p>}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* EDITOR TAB */}
+                        {activeTab === 'offer' && (
+                            <div className="animate-fade-in">
+                                {isEditing && (
+                                    <div className="bg-slate-100 border border-slate-200 rounded-xl p-4 mb-8 flex flex-wrap items-center gap-4">
+                                        <span className="text-xs font-bold text-slate-500 uppercase flex items-center gap-2"><Icon name="Settings" size={14}/> Globální připojištění:</span>
+                                        {moduleTypes.map(t => (
+                                            <span key={t.id} className="bg-white px-3 py-1 rounded-full text-sm border flex items-center gap-2 shadow-sm">{t.name} <button onClick={()=>removeModuleType(t.id)} className="text-slate-300 hover:text-red-500"><Icon name="X" size={12}/></button></span>
+                                        ))}
+                                        <div className="flex items-center gap-2 ml-auto">
+                                            <input value={newModuleTypeName} onChange={(e)=>setNewModuleTypeName(e.target.value)} placeholder="Název..." className="p-1.5 px-3 text-sm border rounded-lg outline-none w-40 focus:ring-2 focus:ring-blue-400" onKeyDown={(e)=>e.key==='Enter'&&addModuleType()} />
+                                            <button onClick={addModuleType} className="bg-white p-1.5 border rounded-lg hover:bg-slate-50 text-[#009ee3]"><Icon name="Plus" size={18}/></button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="flex justify-between items-center mb-4">
+                                    <h2 className="text-xl font-bold text-[#1a1a5c]">Kalkulace variant</h2>
+                                    {isEditing && <button onClick={addOffer} className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 shadow-md flex items-center gap-2 text-sm font-medium"><Icon name="Plus" size={16}/> Přidat variantu</button>}
+                                </div>
+
+                                <div className="flex gap-6 overflow-x-auto pb-10 items-start snap-x">
+                                    {offers.map(offer => (
+                                        <div key={offer.id} className={`snap-center shrink-0 w-full md:w-[400px] bg-white rounded-2xl shadow-lg border-t-4 flex flex-col relative transition-all ${offer.selected ? 'border-[#009ee3] ring-4 ring-blue-50 scale-[1.01]' : 'border-slate-300'}`}>
+                                            
+                                            {isEditing && <button onClick={() => removeOffer(offer.id)} className="absolute top-3 right-3 text-slate-300 hover:text-red-500 p-1 z-10"><Icon name="Trash2" size={18}/></button>}
+
+                                            {/* HEADER */}
+                                            <div className="p-6 border-b border-slate-100 bg-slate-50/50 rounded-t-xl">
+                                                {isEditing ? (
+                                                    <>
+                                                        <select value={offer.insurer} onChange={(e) => handleOfferChange(offer.id, 'root', 'insurer', e.target.value)} className="w-full p-2 mb-2 border rounded font-bold text-[#1a1a5c]">{INSURERS.map(i=><option key={i} value={i}>{i}</option>)}</select>
+                                                        <input value={offer.title} onChange={(e) => handleOfferChange(offer.id, 'root', 'title', e.target.value)} className="w-1/2 text-sm bg-transparent border-b border-dashed outline-none text-slate-500" />
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <h3 className="text-xl font-bold text-[#1a1a5c] mb-1">{offer.insurer}</h3>
+                                                        <p className="text-sm text-slate-500">{offer.title}</p>
+                                                    </>
+                                                )}
+                                                <div className="text-right mt-2">
+                                                    <div className="text-3xl font-bold text-[#009ee3]">{formatCurrency(calculateTotal(offer))}</div>
+                                                    <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Ročně</div>
+                                                </div>
+                                            </div>
+
+                                            <div className="p-6 space-y-6">
+                                                {/* LIABILITY */}
+                                                <div className={`p-4 rounded-xl border transition-colors ${offer.liability.active ? 'bg-blue-50/50 border-blue-200' : 'bg-slate-50 border-slate-100 opacity-60'}`}>
+                                                    <div className="flex justify-between items-center mb-3">
+                                                        <div className="flex items-center gap-2">
+                                                            {isEditing && <input type="checkbox" checked={offer.liability.active} onChange={() => handleOfferChange(offer.id, 'liability', 'active', !offer.liability.active)} className="w-4 h-4 text-blue-600 rounded" />}
+                                                            <span className="font-bold text-sm text-[#1a1a5c]">Povinné ručení</span>
+                                                        </div>
+                                                        {isEditing ? <input type="number" value={offer.liability.price} onChange={(e) => handleOfferChange(offer.id, 'liability', 'price', e.target.value)} className="w-24 text-right p-1 border rounded text-sm font-bold" placeholder="0" /> : <span className="font-bold">{formatCurrency(offer.liability.price)}</span>}
+                                                    </div>
+                                                    {offer.liability.active && (
+                                                        <div className="flex items-center gap-2 pl-6">
+                                                            {isEditing ? (
+                                                                <div className="flex items-center w-full bg-white border rounded px-2">
+                                                                    <input type="number" value={offer.liability.limit} onChange={(e) => handleOfferChange(offer.id, 'liability', 'limit', e.target.value)} className="w-full p-1 text-sm outline-none" placeholder="35" />
+                                                                    <span className="text-xs text-slate-400 whitespace-nowrap">mil. Kč</span>
+                                                                </div>
+                                                            ) : (
+                                                                <span className="text-sm text-slate-600">Limit: <strong>{offer.liability.limit} mil. Kč</strong></span>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* ALLRISK (SMART INPUTS) */}
+                                                <div className={`p-4 rounded-xl border transition-colors ${offer.allrisk.active ? 'bg-blue-50/50 border-blue-200' : 'bg-slate-50 border-slate-100 opacity-60'}`}>
+                                                    <div className="flex justify-between items-center mb-3">
+                                                        <div className="flex items-center gap-2">
+                                                            {isEditing && <input type="checkbox" checked={offer.allrisk.active} onChange={() => handleOfferChange(offer.id, 'allrisk', 'active', !offer.allrisk.active)} className="w-4 h-4 text-blue-600 rounded" />}
+                                                            <span className="font-bold text-sm text-[#1a1a5c]">Havarijní (Allrisk)</span>
+                                                        </div>
+                                                        {isEditing ? <input type="number" value={offer.allrisk.price} onChange={(e) => handleOfferChange(offer.id, 'allrisk', 'price', e.target.value)} className="w-24 text-right p-1 border rounded text-sm font-bold" placeholder="0" /> : <span className="font-bold">{formatCurrency(offer.allrisk.price)}</span>}
+                                                    </div>
+                                                    
+                                                    {offer.allrisk.active && (
+                                                        <div className="pl-6 space-y-3">
+                                                            {/* Limit */}
+                                                            <div className="space-y-1">
+                                                                <label className="text-[10px] uppercase font-bold text-slate-400">Pojistná částka</label>
+                                                                {isEditing ? (
+                                                                    <div className="flex items-center w-full bg-white border rounded px-2">
+                                                                        <input type="number" value={offer.allrisk.limit} onChange={(e) => handleOfferChange(offer.id, 'allrisk', 'limit', e.target.value)} className="w-full p-1 text-sm outline-none" placeholder="0" />
+                                                                        <span className="text-xs text-slate-400">Kč</span>
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="text-sm font-semibold text-slate-700">{formatCurrency(offer.allrisk.limit)}</div>
+                                                                )}
+                                                            </div>
+                                                            
+                                                            {/* Deductible */}
+                                                            <div className="space-y-1">
+                                                                <label className="text-[10px] uppercase font-bold text-slate-400">Spoluúčast</label>
+                                                                {isEditing ? (
+                                                                    <div className="flex gap-2">
+                                                                        <select value={offer.allrisk.pct} onChange={(e) => handleOfferChange(offer.id, 'allrisk', 'pct', e.target.value)} className="w-1/2 p-1 text-sm border rounded bg-white">
+                                                                            <option value="0">0%</option>
+                                                                            <option value="5">5%</option>
+                                                                            <option value="10">10%</option>
+                                                                            <option value="20">20%</option>
+                                                                        </select>
+                                                                        <select value={offer.allrisk.min} onChange={(e) => handleOfferChange(offer.id, 'allrisk', 'min', e.target.value)} className="w-1/2 p-1 text-sm border rounded bg-white">
+                                                                            <option value="1000">1 000 Kč</option>
+                                                                            <option value="5000">5 000 Kč</option>
+                                                                            <option value="10000">10 000 Kč</option>
+                                                                            <option value="20000">20 000 Kč</option>
+                                                                        </select>
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="text-sm text-slate-600">{offer.allrisk.pct}%, min. {new Intl.NumberFormat('cs-CZ').format(offer.allrisk.min)} Kč</div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* MODULES */}
+                                                <div>
+                                                    <div className="text-xs font-bold uppercase text-slate-400 mb-2">Připojištění</div>
+                                                    <div className="space-y-2">
+                                                        {moduleTypes.map(t => {
+                                                            const m = offer.modules[t.id] || { active: false, price: 0, limit: '' };
+                                                            if (!isEditing && !m.active) return null;
+                                                            return (
+                                                                <div key={t.id} className={`flex items-center justify-between p-2 rounded border ${m.active ? 'bg-white border-slate-200' : 'bg-transparent border-transparent opacity-50'}`}>
+                                                                    <div className="flex items-center gap-2 overflow-hidden">
+                                                                        {isEditing && <input type="checkbox" checked={m.active} onChange={() => handleModuleChange(offer.id, t.id, 'active')} className="w-4 h-4 text-blue-600 rounded flex-shrink-0" />}
+                                                                        <div className="min-w-0">
+                                                                            <div className="text-sm font-medium text-slate-700 truncate">{t.name}</div>
+                                                                            {m.active && (
+                                                                                isEditing ? <input type="text" value={m.limit} onChange={(e)=>handleModuleChange(offer.id, t.id, 'limit', e.target.value)} className="text-xs border-b bg-transparent w-full outline-none text-slate-500" placeholder="Popis/Limit" />
+                                                                                : <div className="text-xs text-slate-500 truncate">{m.limit}</div>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                    {m.active && (
+                                                                        isEditing ? <input type="number" value={m.price} onChange={(e)=>handleModuleChange(offer.id, t.id, 'price', e.target.value)} className="w-16 text-right p-1 border rounded text-xs font-bold" placeholder="0" />
+                                                                        : <div className="text-sm font-bold whitespace-nowrap pl-2">{formatCurrency(m.price)}</div>
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="mt-auto p-4 border-t bg-slate-50 rounded-b-xl text-center">
+                                                <button onClick={() => !isEditing && setOffers(prev => prev.map(o => ({...o, selected: o.id === offer.id})))} className={`w-full py-2 rounded-lg font-bold text-sm transition-all ${offer.selected ? 'bg-[#009ee3] text-white shadow-lg' : 'bg-white border text-slate-400 hover:bg-white'}`}>
+                                                    {offer.selected ? 'DOPORUČENÁ VARIANTA' : 'Vybrat tuto variantu'}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* PREVIEW TAB (Screen) */}
+                        {activeTab === 'preview' && (
+                            <div className="max-w-4xl mx-auto">
+                                <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200 mb-8">
+                                    <div className="p-8 text-center border-b bg-slate-50">
+                                        <h2 className="text-2xl font-bold text-[#1a1a5c]">Náhled před odesláním</h2>
+                                        <p className="text-slate-500 mb-6">Zkontrolujte údaje. PDF bude vždy na jedné stránce A4.</p>
+                                        <div className="flex flex-wrap justify-center gap-4">
+                                            <button onClick={downloadPdf} className="bg-slate-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:bg-slate-700 hover:scale-105 transition-all flex items-center gap-2">
+                                                <Icon name="FileText" size={20} /> Stáhnout PDF
+                                            </button>
+                                            <button onClick={copyEmailHtml} className="bg-green-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:bg-green-700 hover:scale-105 transition-all flex items-center gap-2">
+                                                <Icon name="Copy" size={20} /> Kopírovat HTML
+                                            </button>
+                                            <button onClick={sendEmail} className="bg-[#009ee3] text-white px-8 py-3 rounded-xl font-bold shadow-lg hover:bg-blue-500 hover:scale-105 transition-all flex items-center gap-2">
+                                                <Icon name="Mail" size={20} /> Odeslat e-mailem
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                {/* PDF Preview Frame */}
+                                <div className="bg-slate-300 p-4 rounded-2xl shadow-inner">
+                                    <div className="text-center text-xs text-slate-600 mb-2 font-medium">NÁHLED PDF (A4 - 210 × 297 mm)</div>
+                                    <div className="mx-auto bg-white shadow-2xl" style={{ width: '595px', height: '842px', transform: 'scale(0.9)', transformOrigin: 'top center', overflow: 'hidden' }}>
+                                        {/* Mini preview of print container */}
+                                        <div style={{ transform: 'scale(0.75)', transformOrigin: 'top left', width: '794px', height: '1123px' }}>
+                                            <div style={{ background: '#1a1a5c', color: 'white', padding: '40px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', height: '140px' }}>
+                                                <div>
+                                                    <h1 style={{ fontSize: '28px', fontWeight: 'bold', margin: 0, lineHeight: 1.2 }}>NABÍDKA<br/>POJIŠTĚNÍ</h1>
+                                                    <p style={{ fontSize: '12px', opacity: 0.8, marginTop: '10px' }}>LIMMIT Insurance Solutions</p>
+                                                </div>
+                                                <div style={{ textAlign: 'right' }}>
+                                                    <div style={{ fontSize: '12px', opacity: 0.8 }}>{new Date().toLocaleDateString('cs-CZ')}</div>
+                                                </div>
+                                            </div>
+                                            <div style={{ padding: '30px 40px' }}>
+                                                <div style={{ background: '#f8fafc', borderLeft: '6px solid #009ee3', padding: '15px', marginBottom: '25px' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: '1px dashed #e2e8f0', fontSize: '11px' }}>
+                                                        <span style={{ fontWeight: 600, color: '#334155' }}>Klient</span>
+                                                        <span style={{ fontWeight: 700, color: '#0f172a' }}>{clientData.name || '–'}</span>
+                                                    </div>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: '1px dashed #e2e8f0', fontSize: '11px' }}>
+                                                        <span style={{ fontWeight: 600, color: '#334155' }}>Vozidlo</span>
+                                                        <span style={{ fontWeight: 700, color: '#0f172a' }}>{clientData.car || '–'}</span>
+                                                    </div>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', fontSize: '11px' }}>
+                                                        <span style={{ fontWeight: 600, color: '#334155' }}>Adresa</span>
+                                                        <span style={{ fontWeight: 700, color: '#0f172a' }}>{clientData.address || '–'}</span>
+                                                    </div>
+                                                </div>
+                                                <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(offers.length, 3)}, 1fr)`, gap: '15px' }}>
+                                                    {offers.slice(0, 3).map(offer => (
+                                                        <div key={offer.id} style={{ border: offer.selected ? '2px solid #009ee3' : '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', background: 'white' }}>
+                                                            {offer.selected && <div style={{ background: '#009ee3', color: 'white', textAlign: 'center', fontSize: '8px', fontWeight: 'bold', textTransform: 'uppercase', padding: '3px' }}>DOPORUČENÁ</div>}
+                                                            <div style={{ background: '#f1f5f9', padding: '12px', textAlign: 'center', borderBottom: '1px solid #e2e8f0' }}>
+                                                                <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#1a1a5c' }}>{offer.insurer}</div>
+                                                                <div style={{ fontSize: '9px', color: '#64748b' }}>{offer.title}</div>
+                                                                <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#009ee3', marginTop: '5px' }}>{formatCurrency(calculateTotal(offer))}</div>
+                                                                <div style={{ fontSize: '8px', color: '#94a3b8', textTransform: 'uppercase' }}>Ročně</div>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* --- PRINT LAYOUT (Only Visible on Print/PDF Export) --- */}
+                        <div className="print-container print-only-visible" style={{ width: '794px', height: '1123px', maxHeight: '1123px', overflow: 'hidden', position: 'relative', background: 'white', boxSizing: 'border-box' }}>
+                            <div style={{ background: '#1a1a5c', color: 'white', padding: '35px 40px 25px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', height: '120px' }}>
+                                <div>
+                                    <h1 style={{fontSize: '32px', fontWeight: 'bold', margin: 0, lineHeight: 1.2}}>NABÍDKA<br/>POJIŠTĚNÍ</h1>
+                                    <p style={{fontSize: '11px', opacity: 0.7, marginTop: '8px'}}>LIMMIT Insurance Solutions</p>
+                                </div>
+                                <div style={{textAlign: 'right'}}>
+                                    <img src="logo_limmit_aktual.png" style={{height: '35px', filter: 'brightness(0) invert(1)'}} />
+                                    <div style={{fontSize: '11px', marginTop: '5px', opacity: 0.7}}>{new Date().toLocaleDateString('cs-CZ')}</div>
+                                </div>
+                            </div>
+
+                            <div style={{ padding: '25px 40px 20px 40px' }}>
+                                {/* Client Info Box */}
+                                <div style={{ background: '#f8fafc', borderLeft: '5px solid #009ee3', padding: '12px 15px', marginBottom: '20px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px dashed #e2e8f0', fontSize: '11px' }}>
+                                        <span style={{ fontWeight: 600, color: '#334155' }}>Klient</span>
+                                        <span style={{ fontWeight: 700, color: '#0f172a' }}>{clientData.name}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px dashed #e2e8f0', fontSize: '11px' }}>
+                                        <span style={{ fontWeight: 600, color: '#334155' }}>Vozidlo</span>
+                                        <span style={{ fontWeight: 700, color: '#0f172a' }}>{clientData.car}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px dashed #e2e8f0', fontSize: '11px' }}>
+                                        <span style={{ fontWeight: 600, color: '#334155' }}>Pojistná částka</span>
+                                        <span style={{ fontWeight: 700, color: '#009ee3' }}>{formatCurrency(clientData.carValue)}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: '11px' }}>
+                                        <span style={{ fontWeight: 600, color: '#334155' }}>Adresa</span>
+                                        <span style={{ fontWeight: 700, color: '#0f172a' }}>{clientData.address}</span>
+                                    </div>
+                                </div>
+
+                                {/* Offers Grid - Responsive based on count */}
+                                <div style={{ display: 'grid', gridTemplateColumns: offers.length <= 2 ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: '12px' }}>
+                                    {offers.slice(0, 4).map(offer => (
+                                        <div key={offer.id} style={{ border: offer.selected ? '2px solid #009ee3' : '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', background: 'white', boxShadow: offer.selected ? '0 0 0 2px rgba(0, 158, 227, 0.2)' : 'none' }}>
+                                            {offer.selected && <div style={{ background: '#009ee3', color: 'white', textAlign: 'center', fontSize: '8px', fontWeight: 'bold', textTransform: 'uppercase', padding: '3px', letterSpacing: '0.5px' }}>★ DOPORUČENÁ VOLBA</div>}
+                                            <div style={{ background: '#f8fafc', padding: '12px 10px', textAlign: 'center', borderBottom: '1px solid #e2e8f0' }}>
+                                                <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#1a1a5c', marginBottom: '2px', lineHeight: 1.2 }}>{offer.insurer}</div>
+                                                <div style={{ fontSize: '9px', color: '#64748b', marginBottom: '6px' }}>{offer.title}</div>
+                                                <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#009ee3' }}>{formatCurrency(calculateTotal(offer))}</div>
+                                                <div style={{ fontSize: '8px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 'bold', letterSpacing: '0.5px' }}>Ročně</div>
+                                            </div>
+                                            
+                                            <div style={{ padding: '10px' }}>
+                                                {offer.liability.active && (
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px dashed #e2e8f0', fontSize: '9px' }}>
+                                                        <div>
+                                                            <span style={{ fontWeight: 600, color: '#334155' }}>Povinné ručení</span>
+                                                            <span style={{ display: 'block', fontSize: '8px', color: '#64748b' }}>Limit: {offer.liability.limit} mil. Kč</span>
+                                                        </div>
+                                                        <span style={{ fontWeight: 700, color: '#0f172a' }}>{formatCurrency(offer.liability.price)}</span>
+                                                    </div>
+                                                )}
+
+                                                {offer.allrisk.active && (
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px dashed #e2e8f0', fontSize: '9px' }}>
+                                                        <div>
+                                                            <span style={{ fontWeight: 600, color: '#334155' }}>Havarijní pojištění</span>
+                                                            <span style={{ display: 'block', fontSize: '8px', color: '#64748b' }}>Spoluúčast: {offer.allrisk.pct}%, min. {new Intl.NumberFormat('cs-CZ').format(offer.allrisk.min)} Kč</span>
+                                                            <span style={{ display: 'block', fontSize: '8px', color: '#64748b' }}>PČ: {formatCurrency(offer.allrisk.limit)}</span>
+                                                        </div>
+                                                        <span style={{ fontWeight: 700, color: '#0f172a' }}>{formatCurrency(offer.allrisk.price)}</span>
+                                                    </div>
+                                                )}
+
+                                                {moduleTypes.some(t => offer.modules[t.id]?.active) && (
+                                                    <div style={{ marginTop: '6px', paddingTop: '6px', borderTop: '1px solid #f1f5f9' }}>
+                                                        {moduleTypes.map(t => {
+                                                            const m = offer.modules[t.id];
+                                                            if (!m || !m.active) return null;
+                                                            return (
+                                                                <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0', fontSize: '8px' }}>
+                                                                    <span style={{ color: '#475569' }}>{t.name}{m.limit ? ` (${m.limit})` : ''}</span>
+                                                                    <span style={{ fontWeight: 600, color: '#334155' }}>{formatCurrency(m.price)}</span>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Footer - Absolute positioned at bottom */}
+                            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '15px 40px', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#64748b', background: 'white' }}>
+                                <div>
+                                    <strong style={{ color: '#1a1a5c' }}>{clientData.brokerName}</strong><br/>
+                                    Pojišťovací specialista
+                                </div>
+                                <div style={{ textAlign: 'center', fontSize: '9px', color: '#94a3b8' }}>
+                                    LIMMIT Insurance Solutions<br/>
+                                    © {new Date().getFullYear()}
+                                </div>
+                                <div style={{ textAlign: 'right' }}>
+                                    {clientData.brokerPhone}<br/>
+                                    <span style={{ color: '#009ee3' }}>{clientData.brokerEmail}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                    </main>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<InsuranceApp />);
+    </script>
+</body>
+</html>
