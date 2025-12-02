@@ -1,7 +1,20 @@
 "use client";
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { loadSession } from "@/lib/auth";
+import { loadSession, type User } from "@/lib/auth";
+import { supabase } from "@/lib/supabaseClient";
+
+// --- TYPES ---
+type SavedCalculation = {
+  id: string;
+  name: string;
+  created_by: string;
+  client_data: ClientData;
+  module_types: ModuleType[];
+  offers: Offer[];
+  created_at: string;
+  updated_at: string;
+};
 
 // --- ICONS (Lucide-style SVG icons) ---
 const icons = {
@@ -31,6 +44,15 @@ const icons = {
   ),
   save: (
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+  ),
+  upload: (
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+  ),
+  download: (
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+  ),
+  folder: (
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
   ),
   mail: (
     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
@@ -119,12 +141,15 @@ type Notification = {
 
 export default function KalkulacePage() {
   const router = useRouter();
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   // Auth check
   useEffect(() => {
     const user = loadSession();
     if (!user) {
       router.push("/login");
+    } else {
+      setCurrentUser(user);
     }
   }, [router]);
 
@@ -152,6 +177,13 @@ export default function KalkulacePage() {
   const [activeTab, setActiveTab] = useState<"offer" | "preview">("offer");
   const [notification, setNotification] = useState<Notification | null>(null);
   const [newModuleTypeName, setNewModuleTypeName] = useState("");
+  
+  // Cloud save/load state
+  const [savedCalculations, setSavedCalculations] = useState<SavedCalculation[]>([]);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [showLoadModal, setShowLoadModal] = useState(false);
+  const [saveName, setSaveName] = useState("");
+  const [currentCalculationId, setCurrentCalculationId] = useState<string | null>(null);
 
   // --- HELPERS ---
   const showNotification = useCallback((msg: string, type: "success" | "error" | "info" = "success") => {
@@ -272,7 +304,304 @@ export default function KalkulacePage() {
     );
   };
 
+  // --- CLOUD SAVE/LOAD ---
+  const fetchCalculations = useCallback(async () => {
+    if (!currentUser) return;
+    try {
+      const { data, error } = await supabase
+        .from("calculations")
+        .select("*")
+        .eq("created_by", currentUser.username)
+        .order("updated_at", { ascending: false });
+
+      if (error) throw error;
+      setSavedCalculations(data || []);
+    } catch (err) {
+      console.error("Error fetching calculations:", err);
+      showNotification("Nepodařilo se načíst uložené kalkulace.", "error");
+    }
+  }, [currentUser, showNotification]);
+
+  const saveToCloud = async () => {
+    if (!currentUser) {
+      showNotification("Musíte být přihlášeni.", "error");
+      return;
+    }
+
+    if (!saveName.trim()) {
+      showNotification("Zadejte název kalkulace.", "error");
+      return;
+    }
+
+    try {
+      const calculationData = {
+        name: saveName.trim(),
+        created_by: currentUser.username,
+        client_data: clientData,
+        module_types: moduleTypes,
+        offers: offers,
+      };
+
+      if (currentCalculationId) {
+        // Update existing
+        const { error } = await supabase
+          .from("calculations")
+          .update(calculationData)
+          .eq("id", currentCalculationId);
+
+        if (error) throw error;
+        showNotification("Kalkulace byla aktualizována.", "success");
+      } else {
+        // Create new
+        const { data, error } = await supabase
+          .from("calculations")
+          .insert(calculationData)
+          .select()
+          .single();
+
+        if (error) throw error;
+        setCurrentCalculationId(data.id);
+        showNotification("Kalkulace byla uložena.", "success");
+      }
+
+      setShowSaveModal(false);
+      setSaveName("");
+      fetchCalculations();
+    } catch (err) {
+      console.error("Error saving calculation:", err);
+      showNotification("Nepodařilo se uložit kalkulaci.", "error");
+    }
+  };
+
+  const loadCalculation = async (calculation: SavedCalculation) => {
+    try {
+      setClientData(calculation.client_data);
+      setModuleTypes(calculation.module_types);
+      setOffers(calculation.offers);
+      setCurrentCalculationId(calculation.id);
+      setSaveName(calculation.name);
+      setShowLoadModal(false);
+      setIsEditing(false);
+      showNotification(`Kalkulace "${calculation.name}" byla načtena.`, "success");
+    } catch (err) {
+      console.error("Error loading calculation:", err);
+      showNotification("Nepodařilo se načíst kalkulaci.", "error");
+    }
+  };
+
+  const deleteCalculation = async (id: string) => {
+    if (!confirm("Opravdu chcete smazat tuto kalkulaci?")) return;
+
+    try {
+      const { error } = await supabase
+        .from("calculations")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+
+      if (currentCalculationId === id) {
+        setCurrentCalculationId(null);
+        setSaveName("");
+      }
+
+      showNotification("Kalkulace byla smazána.", "success");
+      fetchCalculations();
+    } catch (err) {
+      console.error("Error deleting calculation:", err);
+      showNotification("Nepodařilo se smazat kalkulaci.", "error");
+    }
+  };
+
+  // Fetch calculations on mount
+  useEffect(() => {
+    if (currentUser) {
+      fetchCalculations();
+    }
+  }, [currentUser, fetchCalculations]);
+
   // --- EXPORT LOGIC ---
+  const buildEmailHtml = (selectedOffer: Offer): string => {
+    const currentDate = new Date().toLocaleDateString("cs-CZ", { day: "numeric", month: "long", year: "numeric" });
+
+    // Build offer cards HTML
+    const offerCardsHtml = offers
+      .map((o) => {
+        const total = calculateTotal(o);
+        const isSelected = o.id === selectedOffer.id;
+        const cardBorder = isSelected ? "2px solid #009ee3" : "1px solid #e2e8f0";
+        const cardBg = isSelected ? "#f0f9ff" : "#ffffff";
+
+        const modulesHtml = Object.entries(o.modules || {})
+          .filter(([, m]) => m.active)
+          .map(([key, m]) => {
+            const moduleType = moduleTypes.find((t) => t.id === key);
+            const label = moduleType?.name || "Připojištění";
+            return `<tr><td style="padding:4px 8px;font-size:12px;color:#64748b;">${label}${m.limit ? ` (${m.limit})` : ""}</td><td style="padding:4px 8px;font-size:12px;color:#334155;text-align:right;">${formatCurrency(m.price)}</td></tr>`;
+          })
+          .join("");
+
+        return `
+                        <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px;border:${cardBorder};border-radius:8px;background:${cardBg};overflow:hidden;">
+                            ${isSelected ? `<tr><td colspan="2" style="background:#009ee3;color:#ffffff;padding:6px 12px;font-size:11px;font-weight:bold;text-transform:uppercase;text-align:center;">✓ Doporučená varianta</td></tr>` : ""}
+                            <tr>
+                                <td colspan="2" style="padding:16px;border-bottom:1px solid #e2e8f0;">
+                                    <div style="font-size:16px;font-weight:bold;color:#1a1a5c;margin-bottom:4px;">${o.insurer}</div>
+                                    <div style="font-size:12px;color:#64748b;">${o.title}</div>
+                                </td>
+                            </tr>
+                            ${
+                              o.liability.active
+                                ? `
+                            <tr>
+                                <td style="padding:8px 16px;font-size:13px;color:#334155;font-weight:500;">Povinné ručení (${o.liability.limit} mil. Kč)</td>
+                                <td style="padding:8px 16px;font-size:13px;color:#1e293b;font-weight:bold;text-align:right;">${formatCurrency(o.liability.price)}</td>
+                            </tr>`
+                                : ""
+                            }
+                            ${
+                              o.allrisk.active
+                                ? `
+                            <tr>
+                                <td style="padding:8px 16px;font-size:13px;color:#334155;font-weight:500;">Havarijní (${o.allrisk.pct}% / min. ${formatCurrency(o.allrisk.min)})</td>
+                                <td style="padding:8px 16px;font-size:13px;color:#1e293b;font-weight:bold;text-align:right;">${formatCurrency(o.allrisk.price)}</td>
+                            </tr>`
+                                : ""
+                            }
+                            ${modulesHtml ? `<tr><td colspan="2" style="padding:0;"><table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;">${modulesHtml}</table></td></tr>` : ""}
+                            <tr>
+                                <td colspan="2" style="padding:16px;background:${isSelected ? "#009ee3" : "#1a1a5c"};text-align:center;">
+                                    <div style="font-size:24px;font-weight:bold;color:#ffffff;">${formatCurrency(total)}</div>
+                                    <div style="font-size:11px;color:rgba(255,255,255,0.8);text-transform:uppercase;">ročně</div>
+                                </td>
+                            </tr>
+                        </table>
+                    `;
+      })
+      .join("");
+
+    return `
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nabídka pojištění - ${clientData.name || "Klient"}</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f1f5f9;font-family:Arial,Helvetica,sans-serif;">
+    <!-- Email Wrapper -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f1f5f9;padding:20px 0;">
+        <tr>
+            <td align="center">
+                <!-- Main Container -->
+                <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background-color:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 6px rgba(0,0,0,0.1);">
+                    
+                    <!-- Header -->
+                    <tr>
+                        <td style="background:linear-gradient(135deg,#1a1a5c 0%,#2d2d7a 100%);padding:32px 24px;text-align:center;">
+                            <table width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td style="text-align:left;">
+                                        <div style="font-size:28px;font-weight:bold;color:#ffffff;line-height:1.2;">NABÍDKA</div>
+                                        <div style="font-size:28px;font-weight:bold;color:#009ee3;line-height:1.2;">POJIŠTĚNÍ</div>
+                                    </td>
+                                    <td style="text-align:right;">
+                                        <div style="font-size:12px;color:rgba(255,255,255,0.7);">LIMMIT Insurance Solutions</div>
+                                        <div style="font-size:12px;color:rgba(255,255,255,0.5);margin-top:4px;">${currentDate}</div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Greeting -->
+                    <tr>
+                        <td style="padding:24px 24px 16px 24px;">
+                            <p style="margin:0 0 12px 0;font-size:15px;color:#334155;line-height:1.6;">Dobrý den,</p>
+                            <p style="margin:0;font-size:15px;color:#334155;line-height:1.6;">zasílám Vám nabídku pojištění pro vozidlo <strong style="color:#1a1a5c;">${clientData.car || "–"}</strong>. V příloze naleznete PDF dokument s kompletním přehledem na jednu stranu A4.</p>
+                        </td>
+                    </tr>
+
+                    <!-- Client Info Box -->
+                    <tr>
+                        <td style="padding:0 24px 24px 24px;">
+                            <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;border-left:4px solid #009ee3;border-radius:0 8px 8px 0;">
+                                <tr>
+                                    <td style="padding:16px;">
+                                        <div style="font-size:11px;font-weight:bold;color:#64748b;text-transform:uppercase;margin-bottom:8px;">Údaje klienta</div>
+                                        <div style="font-size:15px;font-weight:bold;color:#1a1a5c;margin-bottom:4px;">${clientData.name || "–"}</div>
+                                        <div style="font-size:13px;color:#64748b;">${clientData.address || ""}</div>
+                                        ${clientData.carValue ? `<div style="font-size:13px;color:#009ee3;font-weight:bold;margin-top:8px;">Pojistná částka: ${formatCurrency(clientData.carValue)}</div>` : ""}
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Offer Cards -->
+                    <tr>
+                        <td style="padding:0 24px;">
+                            <div style="font-size:11px;font-weight:bold;color:#64748b;text-transform:uppercase;margin-bottom:12px;">Přehled variant</div>
+                            ${offerCardsHtml}
+                        </td>
+                    </tr>
+
+                    <!-- CTA Section -->
+                    <tr>
+                        <td style="padding:24px;text-align:center;">
+                            <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f9ff;border-radius:8px;border:1px dashed #009ee3;">
+                                <tr>
+                                    <td style="padding:20px;">
+                                        <div style="font-size:14px;color:#1a1a5c;font-weight:bold;margin-bottom:8px;">📎 V příloze naleznete PDF dokument</div>
+                                        <div style="font-size:13px;color:#64748b;">Obsahuje podrobný rozpis všech variant na jedné stránce A4.</div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Divider -->
+                    <tr>
+                        <td style="padding:0 24px;">
+                            <div style="height:1px;background:#e2e8f0;"></div>
+                        </td>
+                    </tr>
+
+                    <!-- Footer / Contact -->
+                    <tr>
+                        <td style="padding:24px;">
+                            <table width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td style="vertical-align:top;">
+                                        <div style="font-size:11px;font-weight:bold;color:#64748b;text-transform:uppercase;margin-bottom:8px;">Váš poradce</div>
+                                        <div style="font-size:15px;font-weight:bold;color:#1a1a5c;">${clientData.brokerName}</div>
+                                        <div style="font-size:13px;color:#64748b;margin-top:4px;">Pojišťovací specialista</div>
+                                    </td>
+                                    <td style="vertical-align:top;text-align:right;">
+                                        <div style="font-size:13px;color:#1a1a5c;margin-bottom:4px;">📞 ${clientData.brokerPhone}</div>
+                                        <div style="font-size:13px;color:#009ee3;">✉️ ${clientData.brokerEmail}</div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Bottom Bar -->
+                    <tr>
+                        <td style="background:#1a1a5c;padding:16px 24px;text-align:center;">
+                            <div style="font-size:11px;color:rgba(255,255,255,0.6);">© ${new Date().getFullYear()} LIMMIT Insurance Solutions | Všechna práva vyhrazena</div>
+                        </td>
+                    </tr>
+
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+                `;
+  };
+
   const buildEmailText = (selectedOffer: Offer): string => {
     const offersText = offers
       .map((o) => {
@@ -352,6 +681,31 @@ LIMMIT Insurance Solutions`;
     }
   };
 
+  const copyEmailHtml = async () => {
+    const selectedOffer = offers.find((o) => o.selected) || offers[0];
+    if (!selectedOffer) {
+      showNotification("Chybí data nabídek.", "error");
+      return;
+    }
+
+    try {
+      const html = buildEmailHtml(selectedOffer);
+      const blob = new Blob([html], { type: "text/html" });
+      const clipboardItem = new ClipboardItem({ "text/html": blob, "text/plain": new Blob([html], { type: "text/plain" }) });
+      await navigator.clipboard.write([clipboardItem]);
+      showNotification("HTML email zkopírován do schránky.", "success");
+    } catch {
+      // Fallback - copy as plain text
+      try {
+        const selectedOffer = offers.find((o) => o.selected) || offers[0];
+        await navigator.clipboard.writeText(buildEmailHtml(selectedOffer));
+        showNotification("HTML kód zkopírován jako text.", "success");
+      } catch {
+        showNotification("Kopírování se nezdařilo.", "error");
+      }
+    }
+  };
+
   // --- UI ---
   return (
     <div className="min-h-screen font-sans bg-zinc-900 text-white">
@@ -371,6 +725,108 @@ LIMMIT Insurance Solutions`;
         </div>
       )}
 
+      {/* SAVE MODAL */}
+      {showSaveModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <div className="bg-zinc-800 rounded-2xl p-6 w-full max-w-md border border-zinc-700 shadow-2xl">
+            <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+              {icons.upload} Uložit kalkulaci
+            </h3>
+            <input
+              type="text"
+              value={saveName}
+              onChange={(e) => setSaveName(e.target.value)}
+              placeholder="Název kalkulace..."
+              className="w-full p-3 bg-zinc-700 border border-zinc-600 rounded-lg text-white mb-4 outline-none focus:ring-2 focus:ring-blue-500"
+              onKeyDown={(e) => e.key === "Enter" && saveToCloud()}
+              autoFocus
+            />
+            {currentCalculationId && (
+              <p className="text-sm text-gray-400 mb-4">
+                ✏️ Aktualizujete existující kalkulaci
+              </p>
+            )}
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowSaveModal(false)}
+                className="px-4 py-2 rounded-lg bg-zinc-700 text-gray-300 hover:bg-zinc-600 transition-all"
+              >
+                Zrušit
+              </button>
+              <button
+                onClick={saveToCloud}
+                className="px-6 py-2 rounded-lg bg-green-600 text-white font-bold hover:bg-green-700 transition-all flex items-center gap-2"
+              >
+                {icons.save} Uložit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* LOAD MODAL */}
+      {showLoadModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <div className="bg-zinc-800 rounded-2xl p-6 w-full max-w-lg border border-zinc-700 shadow-2xl max-h-[80vh] flex flex-col">
+            <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+              {icons.folder} Načíst kalkulaci
+            </h3>
+            <div className="flex-1 overflow-y-auto space-y-2 mb-4">
+              {savedCalculations.length === 0 ? (
+                <p className="text-gray-400 text-center py-8">Nemáte žádné uložené kalkulace.</p>
+              ) : (
+                savedCalculations.map((calc) => (
+                  <div
+                    key={calc.id}
+                    className={`p-4 rounded-lg border transition-all cursor-pointer hover:bg-zinc-700 ${
+                      currentCalculationId === calc.id
+                        ? "border-[#009ee3] bg-zinc-700/50"
+                        : "border-zinc-600 bg-zinc-900"
+                    }`}
+                    onClick={() => loadCalculation(calc)}
+                  >
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <div className="font-bold text-white">{calc.name}</div>
+                        <div className="text-sm text-gray-400">
+                          {calc.client_data?.name || "Bez klienta"} • {calc.client_data?.car || "Bez vozidla"}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          {new Date(calc.updated_at).toLocaleDateString("cs-CZ", {
+                            day: "numeric",
+                            month: "long",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </div>
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteCalculation(calc.id);
+                        }}
+                        className="text-gray-400 hover:text-red-500 p-1"
+                      >
+                        {icons.trash}
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+            <div className="flex justify-end">
+              <button
+                onClick={() => setShowLoadModal(false)}
+                className="px-4 py-2 rounded-lg bg-zinc-700 text-gray-300 hover:bg-zinc-600 transition-all"
+              >
+                Zavřít
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* APP HEADER */}
       <header className="bg-[#1a1a5c] text-white sticky top-0 z-40 shadow-lg border-b border-blue-900">
         <div className="max-w-[1600px] mx-auto px-6 py-3 flex justify-between items-center">
@@ -380,6 +836,19 @@ LIMMIT Insurance Solutions`;
             <h1 className="text-lg font-bold tracking-wide">Kalkulátor pojištění</h1>
           </div>
           <div className="flex gap-3">
+            <button
+              onClick={() => { setSaveName(saveName || clientData.name || "Nová kalkulace"); setShowSaveModal(true); }}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-500/20 text-green-100 hover:bg-green-500/30 hover:text-white transition-all text-sm font-medium"
+            >
+              {icons.upload} Uložit
+            </button>
+            <button
+              onClick={() => { fetchCalculations(); setShowLoadModal(true); }}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-yellow-500/20 text-yellow-100 hover:bg-yellow-500/30 hover:text-white transition-all text-sm font-medium"
+            >
+              {icons.folder} Načíst
+            </button>
+            <div className="h-8 w-px bg-blue-800 mx-1"></div>
             <button
               onClick={handleNewCalculation}
               className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500/10 text-red-100 hover:bg-red-500/20 hover:text-white transition-all text-sm font-medium"
@@ -791,6 +1260,12 @@ LIMMIT Insurance Solutions`;
                     className="bg-green-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:bg-green-700 hover:scale-105 transition-all flex items-center gap-2"
                   >
                     {icons.copy} Kopírovat text
+                  </button>
+                  <button
+                    onClick={copyEmailHtml}
+                    className="bg-purple-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:bg-purple-700 hover:scale-105 transition-all flex items-center gap-2"
+                  >
+                    {icons.fileText} Kopírovat HTML
                   </button>
                   <button
                     onClick={sendEmail}
