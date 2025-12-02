@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { loadSession, type User } from "@/lib/auth";
 import { supabase } from "@/lib/supabaseClient";
+import { LimmitLogo } from "@/lib/logo";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
@@ -503,9 +504,27 @@ export default function KalkulacePage() {
                         <td style="background:linear-gradient(135deg,#1a1a5c 0%,#2d2d7a 100%);padding:32px 24px;text-align:center;">
                             <table width="100%" cellpadding="0" cellspacing="0">
                                 <tr>
-                                    <td style="text-align:left;">
-                                        <div style="font-size:28px;font-weight:bold;color:#ffffff;line-height:1.2;">NABÍDKA</div>
-                                        <div style="font-size:28px;font-weight:bold;color:#009ee3;line-height:1.2;">POJIŠTĚNÍ</div>
+                                    <td style="text-align:left;vertical-align:middle;">
+                                        <table cellpadding="0" cellspacing="0">
+                                            <tr>
+                                                <td style="padding-right:12px;">
+                                                    <table cellpadding="0" cellspacing="2">
+                                                        <tr>
+                                                            <td style="width:16px;height:16px;background:#009ee3;border-radius:3px;"></td>
+                                                            <td style="width:16px;height:16px;background:#ffffff;border-radius:3px;"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td style="width:16px;height:16px;background:#ffffff;border-radius:3px;"></td>
+                                                            <td style="width:16px;height:16px;background:#009ee3;border-radius:3px;"></td>
+                                                        </tr>
+                                                    </table>
+                                                </td>
+                                                <td>
+                                                    <div style="font-size:28px;font-weight:bold;color:#ffffff;line-height:1.2;">NABÍDKA</div>
+                                                    <div style="font-size:28px;font-weight:bold;color:#009ee3;line-height:1.2;">POJIŠTĚNÍ</div>
+                                                </td>
+                                            </tr>
+                                        </table>
                                     </td>
                                     <td style="text-align:right;">
                                         <div style="font-size:12px;color:rgba(255,255,255,0.7);">LIMMIT Insurance Solutions</div>
@@ -778,9 +797,17 @@ LIMMIT Insurance Solutions`;
     const pdfHtml = `
       <div style="width:${A4_WIDTH_PX}px;height:${A4_HEIGHT_PX}px;max-height:${A4_HEIGHT_PX}px;overflow:hidden;position:relative;background:white;box-sizing:border-box;font-family:Arial,Helvetica,sans-serif;">
         <div style="background:#1a1a5c;color:white;padding:35px 40px 25px 40px;display:flex;justify-content:space-between;align-items:flex-end;height:120px;">
-          <div>
-            <h1 style="font-size:32px;font-weight:bold;margin:0;line-height:1.2;">NABÍDKA<br/>POJIŠTĚNÍ</h1>
-            <p style="font-size:11px;opacity:0.7;margin-top:8px;">LIMMIT Insurance Solutions</p>
+          <div style="display:flex;align-items:flex-end;gap:15px;">
+            <div style="display:grid;grid-template-columns:20px 20px;gap:3px;margin-bottom:8px;">
+              <div style="width:20px;height:20px;background:#009ee3;border-radius:4px;"></div>
+              <div style="width:20px;height:20px;background:#ffffff;border-radius:4px;"></div>
+              <div style="width:20px;height:20px;background:#ffffff;border-radius:4px;"></div>
+              <div style="width:20px;height:20px;background:#009ee3;border-radius:4px;"></div>
+            </div>
+            <div>
+              <h1 style="font-size:32px;font-weight:bold;margin:0;line-height:1.2;">NABÍDKA<br/>POJIŠTĚNÍ</h1>
+              <p style="font-size:11px;opacity:0.7;margin-top:8px;">LIMMIT Insurance Solutions</p>
+            </div>
           </div>
           <div style="text-align:right;">
             <div style="font-size:11px;opacity:0.7;">${new Date().toLocaleDateString("cs-CZ")}</div>
@@ -1039,7 +1066,7 @@ LIMMIT Insurance Solutions`;
       <header className="bg-[#1a1a5c] text-white sticky top-0 z-40 shadow-lg border-b border-blue-900">
         <div className="max-w-[1600px] mx-auto px-6 py-3 flex justify-between items-center">
           <div className="flex items-center gap-4">
-            <div className="text-xl font-bold">LIMMIT</div>
+            <LimmitLogo height={28} />
             <div className="h-6 w-px bg-blue-800"></div>
             <h1 className="text-lg font-bold tracking-wide">Kalkulátor pojištění</h1>
           </div>

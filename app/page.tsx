@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { loadSession, clearSession, type User, getAllUsers } from "@/lib/auth";
+import { LimmitLogo } from "@/lib/logo";
 
 /** ===== Typy ===== */
 type Priority = "Low" | "Medium" | "High" | "Urgent";
@@ -418,7 +419,11 @@ export default function Home() {
         ))}
       </div>
       <header className="mb-6 flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
-        <h1 className="text-3xl font-bold">Přehled úkolů</h1>
+        <div className="flex items-center gap-4">
+          <LimmitLogo height={32} />
+          <div className="h-8 w-px bg-zinc-700"></div>
+          <h1 className="text-2xl font-bold">Přehled úkolů</h1>
+        </div>
 
         <div className="flex flex-wrap gap-3 items-center">
           <div className="flex items-center gap-2 bg-zinc-800 px-3 py-2 rounded-lg">
