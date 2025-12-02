@@ -1,8 +1,10 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { loadSession, type User } from "@/lib/auth";
 import { supabase } from "@/lib/supabaseClient";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 // --- TYPES ---
 type SavedCalculation = {
@@ -706,6 +708,212 @@ LIMMIT Insurance Solutions`;
     }
   };
 
+  // --- PDF GENERATION ---
+  const generatePdfAttachment = async (): Promise<{ blob: Blob; fileName: string; pdf: jsPDF }> => {
+    // A4 dimensions in pixels at 96 DPI
+    const A4_WIDTH_PX = 794;
+    const A4_HEIGHT_PX = 1123;
+
+    // Build PDF HTML content
+    const offersHtml = offers.slice(0, 4).map((offer) => {
+      const modulesHtml = moduleTypes
+        .map((t) => {
+          const m = offer.modules[t.id];
+          if (!m || !m.active) return "";
+          return `<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:9px;border-bottom:1px dotted #e2e8f0;">
+            <span style="color:#475569;font-weight:500;">${t.name}${m.limit ? ` <span style="color:#94a3b8;font-weight:400;">(${m.limit})</span>` : ""}</span>
+            <span style="font-weight:600;color:#1e293b;">${formatCurrency(m.price)}</span>
+          </div>`;
+        })
+        .join("");
+
+      return `
+        <div style="border:${offer.selected ? "2px solid #009ee3" : "1px solid #e2e8f0"};border-radius:8px;overflow:hidden;background:white;${offer.selected ? "box-shadow:0 0 0 2px rgba(0,158,227,0.2);" : ""}">
+          ${offer.selected ? '<div style="background:#009ee3;color:white;text-align:center;font-size:8px;font-weight:bold;text-transform:uppercase;padding:4px;letter-spacing:0.5px;">★ DOPORUČENÁ VOLBA</div>' : ""}
+          <div style="background:#f8fafc;padding:12px 10px;text-align:center;border-bottom:1px solid #e2e8f0;">
+            <div style="font-size:12px;font-weight:bold;color:#1a1a5c;margin-bottom:2px;line-height:1.2;">${offer.insurer}</div>
+            <div style="font-size:9px;color:#64748b;margin-bottom:6px;">${offer.title}</div>
+            <div style="font-size:22px;font-weight:bold;color:#009ee3;">${formatCurrency(calculateTotal(offer))}</div>
+            <div style="font-size:8px;color:#94a3b8;text-transform:uppercase;font-weight:bold;letter-spacing:0.5px;">Ročně</div>
+          </div>
+          <div style="padding:12px;">
+            ${offer.liability.active ? `
+              <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:10px;margin-bottom:8px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                  <span style="font-weight:700;color:#166534;font-size:11px;">🛡️ POVINNÉ RUČENÍ</span>
+                  <span style="font-weight:800;color:#166534;font-size:13px;">${formatCurrency(offer.liability.price)}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;background:white;border-radius:4px;padding:6px 8px;">
+                  <span style="font-size:9px;color:#64748b;">Limit plnění:</span>
+                  <span style="font-size:10px;font-weight:700;color:#0f172a;">${offer.liability.limit} mil. Kč</span>
+                </div>
+              </div>` : ""}
+            ${offer.allrisk.active ? `
+              <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:10px;margin-bottom:8px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                  <span style="font-weight:700;color:#1e40af;font-size:11px;">🚗 HAVARIJNÍ</span>
+                  <span style="font-weight:800;color:#1e40af;font-size:13px;">${formatCurrency(offer.allrisk.price)}</span>
+                </div>
+                <div style="background:white;border-radius:4px;padding:6px 8px;">
+                  <div style="display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px dashed #e2e8f0;">
+                    <span style="font-size:9px;color:#64748b;">Pojistná částka:</span>
+                    <span style="font-size:10px;font-weight:700;color:#0f172a;">${formatCurrency(offer.allrisk.limit)}</span>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;padding:2px 0;">
+                    <span style="font-size:9px;color:#64748b;">Spoluúčast:</span>
+                    <span style="font-size:10px;font-weight:700;color:#0f172a;">${offer.allrisk.pct}% / min. ${new Intl.NumberFormat("cs-CZ").format(offer.allrisk.min)} Kč</span>
+                  </div>
+                </div>
+              </div>` : ""}
+            ${modulesHtml ? `
+              <div style="margin-top:6px;">
+                <div style="font-size:8px;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:4px;letter-spacing:0.5px;">Připojištění</div>
+                ${modulesHtml}
+              </div>` : ""}
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    const pdfHtml = `
+      <div style="width:${A4_WIDTH_PX}px;height:${A4_HEIGHT_PX}px;max-height:${A4_HEIGHT_PX}px;overflow:hidden;position:relative;background:white;box-sizing:border-box;font-family:Arial,Helvetica,sans-serif;">
+        <div style="background:#1a1a5c;color:white;padding:35px 40px 25px 40px;display:flex;justify-content:space-between;align-items:flex-end;height:120px;">
+          <div>
+            <h1 style="font-size:32px;font-weight:bold;margin:0;line-height:1.2;">NABÍDKA<br/>POJIŠTĚNÍ</h1>
+            <p style="font-size:11px;opacity:0.7;margin-top:8px;">LIMMIT Insurance Solutions</p>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:11px;opacity:0.7;">${new Date().toLocaleDateString("cs-CZ")}</div>
+          </div>
+        </div>
+
+        <div style="padding:25px 40px 20px 40px;">
+          <div style="background:#f8fafc;border-left:5px solid #009ee3;padding:12px 15px;margin-bottom:20px;">
+            <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px dashed #e2e8f0;font-size:11px;">
+              <span style="font-weight:600;color:#334155;">Klient</span>
+              <span style="font-weight:700;color:#0f172a;">${clientData.name || "–"}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px dashed #e2e8f0;font-size:11px;">
+              <span style="font-weight:600;color:#334155;">Vozidlo</span>
+              <span style="font-weight:700;color:#0f172a;">${clientData.car || "–"}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px dashed #e2e8f0;font-size:11px;">
+              <span style="font-weight:600;color:#334155;">Pojistná částka</span>
+              <span style="font-weight:700;color:#009ee3;">${formatCurrency(clientData.carValue)}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:11px;">
+              <span style="font-weight:600;color:#334155;">Adresa</span>
+              <span style="font-weight:700;color:#0f172a;">${clientData.address || "–"}</span>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(${offers.length <= 2 ? 2 : Math.min(offers.length, 4)}, 1fr);gap:12px;">
+            ${offersHtml}
+          </div>
+        </div>
+
+        <div style="position:absolute;bottom:0;left:0;right:0;padding:15px 40px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;font-size:10px;color:#64748b;background:white;">
+          <div>
+            <strong style="color:#1a1a5c;">${clientData.brokerName}</strong><br/>
+            Pojišťovací specialista
+          </div>
+          <div style="text-align:center;font-size:9px;color:#94a3b8;">
+            LIMMIT Insurance Solutions<br/>
+            © ${new Date().getFullYear()}
+          </div>
+          <div style="text-align:right;">
+            ${clientData.brokerPhone}<br/>
+            <span style="color:#009ee3;">${clientData.brokerEmail}</span>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Create temporary container
+    const container = document.createElement("div");
+    container.innerHTML = pdfHtml;
+    container.style.cssText = `
+      position: fixed;
+      left: -9999px;
+      top: 0;
+      width: ${A4_WIDTH_PX}px;
+      height: ${A4_HEIGHT_PX}px;
+      background: white;
+      z-index: -9999;
+      visibility: visible;
+      opacity: 1;
+    `;
+    document.body.appendChild(container);
+
+    // Wait for render
+    await new Promise((resolve) => setTimeout(resolve, 200));
+
+    // Get the actual element to render
+    const elementToRender = container.querySelector("div");
+    if (!elementToRender) {
+      document.body.removeChild(container);
+      throw new Error("PDF element not found");
+    }
+
+    // Render canvas
+    let canvas;
+    try {
+      canvas = await html2canvas(elementToRender as HTMLElement, {
+        scale: 3,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        width: A4_WIDTH_PX,
+        height: A4_HEIGHT_PX,
+        logging: false,
+        allowTaint: true,
+      });
+    } catch (canvasError) {
+      document.body.removeChild(container);
+      throw new Error("Canvas render failed: " + (canvasError as Error).message);
+    }
+
+    document.body.removeChild(container);
+
+    if (!canvas || canvas.width === 0 || canvas.height === 0) {
+      throw new Error("Canvas is empty");
+    }
+
+    const imgData = canvas.toDataURL("image/png", 1.0);
+    const pdf = new jsPDF({
+      orientation: "portrait",
+      unit: "mm",
+      format: "a4",
+      compress: false,
+      putOnlyUsedFonts: true,
+    });
+
+    // Exact A4 dimensions
+    const pageWidth = 210;
+    const pageHeight = 297;
+
+    // Add image to fill exactly one A4 page
+    pdf.addImage(imgData, "PNG", 0, 0, pageWidth, pageHeight, undefined, "NONE");
+
+    const clientName = (clientData.name || "klient").replace(/[^a-zA-Z0-9\u00C0-\u024F]/g, "_");
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const fileName = `Nabidka_${clientName}_${dateStr}.pdf`;
+
+    const blob = pdf.output("blob");
+    return { blob, fileName, pdf };
+  };
+
+  const downloadPdf = async () => {
+    try {
+      showNotification("Generuji PDF...", "info");
+      const result = await generatePdfAttachment();
+      result.pdf.save(result.fileName);
+      showNotification("PDF bylo úspěšně staženo.", "success");
+    } catch (err) {
+      console.error("PDF generation error:", err);
+      showNotification("Nepodařilo se vygenerovat PDF: " + (err as Error).message, "error");
+    }
+  };
+
   // --- UI ---
   return (
     <div className="min-h-screen font-sans bg-zinc-900 text-white">
@@ -1255,6 +1463,12 @@ LIMMIT Insurance Solutions`;
                 <h2 className="text-2xl font-bold text-white">Náhled před odesláním</h2>
                 <p className="text-gray-400 mb-6">Zkontrolujte údaje a vyberte způsob exportu.</p>
                 <div className="flex flex-wrap justify-center gap-4">
+                  <button
+                    onClick={downloadPdf}
+                    className="bg-red-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:bg-red-700 hover:scale-105 transition-all flex items-center gap-2"
+                  >
+                    {icons.fileText} Stáhnout PDF
+                  </button>
                   <button
                     onClick={copyEmailText}
                     className="bg-green-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:bg-green-700 hover:scale-105 transition-all flex items-center gap-2"
