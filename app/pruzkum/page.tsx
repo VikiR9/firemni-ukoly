@@ -301,7 +301,7 @@ export default function PruzkumPage() {
   };
 
   // Phase navigation
-  const phases: { id: Phase; label: string; icon: JSX.Element }[] = [
+  const phases: { id: Phase; label: string; icon: React.ReactNode }[] = [
     { id: "setup", label: "Konfigurace", icon: icons.settings },
     { id: "entry", label: "Zadávání", icon: icons.table },
     { id: "select", label: "Výběr", icon: icons.checkSquare },
