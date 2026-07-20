@@ -1,0 +1,289 @@
+.offerPage,
+.statePage {
+  min-height: 100vh;
+  color: #182a35;
+  background:
+    radial-gradient(circle at 12% 0%, rgb(11 129 120 / 12%), transparent 28rem),
+    #edf2f3;
+}
+
+.offerPage {
+  padding-top: 82px;
+}
+
+.toolbar {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 50;
+  display: flex;
+  min-height: 82px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 13px clamp(16px, 4vw, 48px);
+  color: #f7fbfc;
+  background: rgb(9 37 54 / 96%);
+  border-bottom: 1px solid rgb(255 255 255 / 12%);
+  box-shadow: 0 14px 38px rgb(9 37 54 / 20%);
+  backdrop-filter: blur(18px);
+}
+
+.toolbarIntro {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 11px;
+}
+
+.toolbarIntro div {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.toolbarIntro strong,
+.toolbarIntro span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.toolbarIntro strong {
+  font-size: 14px;
+}
+
+.toolbarIntro span {
+  color: #b9ccd4;
+  font-size: 12px;
+}
+
+.secureMark {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  place-items: center;
+  color: #083834;
+  font-weight: 900;
+  background: #8ad9d0;
+  border-radius: 50%;
+}
+
+.toolbarActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.primaryButton,
+.secondaryButton {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1;
+  text-decoration: none;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  cursor: pointer;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.primaryButton {
+  color: #082e2b;
+  background: #8ad9d0;
+}
+
+.primaryButton:hover:not(:disabled) {
+  background: #a7e6df;
+  transform: translateY(-1px);
+}
+
+.primaryButton:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.secondaryButton {
+  color: #f5f9fa;
+  background: rgb(255 255 255 / 7%);
+  border-color: rgb(255 255 255 / 18%);
+}
+
+.secondaryButton:hover {
+  background: rgb(255 255 255 / 13%);
+  border-color: rgb(255 255 255 / 30%);
+  transform: translateY(-1px);
+}
+
+.primaryButton:focus-visible,
+.secondaryButton:focus-visible {
+  outline: 3px solid #f4c96b;
+  outline-offset: 3px;
+}
+
+.documentRoot {
+  min-width: 0;
+}
+
+.statePage {
+  display: grid;
+  place-items: center;
+  padding: 32px 18px;
+}
+
+.stateCard {
+  width: min(100%, 530px);
+  padding: clamp(30px, 6vw, 52px);
+  text-align: center;
+  background: #ffffff;
+  border: 1px solid #dbe3e6;
+  border-radius: 24px 24px 24px 7px;
+  box-shadow: 0 26px 70px rgb(9 37 54 / 14%);
+}
+
+.stateCard h1 {
+  margin: 0;
+  color: #092536;
+  font-size: clamp(27px, 5vw, 40px);
+  line-height: 1.08;
+  letter-spacing: -0.04em;
+}
+
+.stateCard > p:not(.eyebrow) {
+  max-width: 420px;
+  margin: 18px auto 0;
+  color: #526a76;
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.stateCard .primaryButton {
+  margin-top: 24px;
+}
+
+.eyebrow {
+  margin: 18px 0 9px;
+  color: #0a716a;
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.spinner,
+.stateIcon {
+  display: grid;
+  width: 50px;
+  height: 50px;
+  margin: 0 auto;
+  place-items: center;
+}
+
+.spinner {
+  border: 4px solid #d9efeb;
+  border-top-color: #0b8178;
+  border-radius: 50%;
+  animation: spin 850ms linear infinite;
+}
+
+.stateIcon {
+  color: #ffffff;
+  font-size: 24px;
+  font-weight: 850;
+  background: #0b8178;
+  border-radius: 16px 16px 16px 5px;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  border: 0;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 760px) {
+  .offerPage {
+    padding-top: 128px;
+  }
+
+  .toolbar {
+    min-height: 128px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 12px 14px;
+  }
+
+  .toolbarIntro {
+    justify-content: center;
+  }
+
+  .toolbarActions {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr 0.62fr;
+  }
+
+  .primaryButton,
+  .secondaryButton {
+    min-width: 0;
+    padding-inline: 10px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 430px) {
+  .toolbarIntro span {
+    display: none;
+  }
+
+  .toolbarActions {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .toolbarActions > :first-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation-duration: 1.8s;
+  }
+
+  .primaryButton,
+  .secondaryButton {
+    transition: none;
+  }
+}
+
+@media print {
+  .offerPage {
+    min-height: auto;
+    padding: 0;
+    background: #ffffff;
+  }
+
+  .toolbar {
+    display: none !important;
+  }
+}

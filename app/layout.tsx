@@ -15,8 +15,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Firemní úkoly",
-  description: "Správa firemních úkolů s notifikacemi",
+  title: {
+    default: "LIMMIT | Firemní aplikace",
+    template: "%s | LIMMIT",
+  },
+  description: "Firemní aplikace LIMMIT pro úkoly, kalkulace a klientské nabídky.",
   manifest: "/manifest.json",
 };
 
@@ -26,23 +29,19 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="cs">
+    <html lang="cs" className={`${geistSans.variable} ${geistMono.variable}`}>
       <head>
         <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#10b981" />
+        <meta name="theme-color" content="#081827" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         {/* Icons (using existing SVGs in /public) */}
         <link rel="icon" href="/window.svg" sizes="192x192" />
         <link rel="icon" href="/file.svg" sizes="512x512" />
         <link rel="apple-touch-icon" href="/window.svg" />
-        <link rel="mask-icon" href="/window.svg" color="#10b981" />
-        {/* OneSignal SDK */}
-        <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+        <link rel="mask-icon" href="/window.svg" color="#0f8f8a" />
       </head>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className="antialiased">
         <OneSignalInit />
         <AppNavigation />
         {children}
