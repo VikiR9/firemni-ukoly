@@ -1,36 +1,46 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Firemní aplikace LIMMIT
 
-## Getting Started
+Interní Next.js aplikace pro úkoly, kalkulace a klientské nabídky pojištění.
 
-First, run the development server:
+## Moduly
+
+- `/` – firemní úkoly
+- `/kalkulace` – nabídky pojištění vozidel
+- `/majetek` – editor pojištění nemovitosti, domácnosti a odpovědnosti
+- `/nabidka/[slug]` – veřejný klientský výstup bez interní navigace
+
+Majetkový modul používá jeden verzovaný datový model pro obrazovku i třístránkové A4 PDF. Veřejná nabídka je před uložením zašifrovaná pomocí AES-256-GCM. Databáze obsahuje pouze ciphertext; dešifrovací klíč zůstává za `#` v odkazu a do Supabase ani webového serveru se neposílá.
+
+Také pracovní uložení majetkové nabídky v `property_calculations` je šifrované. Klíč zůstává pouze v prohlížeči, ve kterém byla nabídka uložena; bez exportu klíče ji jiné zařízení záměrně neodemkne.
+
+## Lokální spuštění
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Aplikace se otevře na [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Supabase
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Aktuální projekt používá migraci v `supabase/migrations`. Pro vlastní prostředí nastavte:
 
-## Learn More
+```dotenv
+NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<publishable-key>
+```
 
-To learn more about Next.js, take a look at the following resources:
+`NEXT_PUBLIC_SUPABASE_ANON_KEY` může obsahovat moderní klíč ve formátu `sb_publishable_…`. Autorizační hranicí zůstávají databázová RLS pravidla; do klienta nikdy nepatří service-role klíč.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Starší moduly zatím používají kompatibilní interní přihlášení v prohlížeči a širší anonymní RLS pravidla. Nejde o plnohodnotnou serverovou autorizaci. Před ukládáním dalších citlivých dat do starších tabulek je potřeba přejít na Supabase Auth a uživatelsky vázané RLS politiky; nový majetkový modul tuto mezeru obchází šifrováním klientských dat ještě před odesláním.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Kontroly před nasazením
 
-## Deploy on Vercel
+```bash
+npx tsc --noEmit
+npm run build
+npm audit --omit=dev
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Anonymizovaná referenční nabídka je v `lib/property-offer/reference.ts`. Rozlišuje stavy krytí `included`, `excluded` a `unknown`, aby „neuvedeno“ nebylo zaměněno za výluku. Konkrétní klientské výstupy se do veřejného repozitáře neukládají.
