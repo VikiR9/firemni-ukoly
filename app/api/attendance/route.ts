@@ -9,6 +9,8 @@ const actions = new Set([
   "home_plan",
   "checkin",
   "checkout",
+  "after_hours_start",
+  "after_hours_stop",
   "ask_excuse",
   "submit_excuse",
   "review_excuse",
@@ -65,6 +67,13 @@ async function handle(
         },
         { status: 400 },
       );
+    if (result?.after_hours && (user.username !== "VIKTOR" || user.role !== "OWNER")) {
+      result.after_hours = {
+        is_working: result.after_hours.is_working === true,
+        can_view_reports: false,
+        sessions: [],
+      };
+    }
     if (
       result?.server_now &&
       user.role !== "OWNER" &&

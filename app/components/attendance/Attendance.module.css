@@ -18,6 +18,15 @@
   align-items: center;
   margin-bottom: 18px;
 }
+.afterHoursHeader {
+  flex-wrap: wrap;
+}
+.afterHoursHeader > div {
+  flex: 1 1 260px;
+}
+.afterHoursHeader > strong {
+  white-space: nowrap;
+}
 .muted {
   font-size: 12px;
   line-height: 1.7;

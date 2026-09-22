@@ -32,6 +32,7 @@ import Modal from "../tasks/Modal";
 import { Avatar } from "../tasks/TaskDialogs";
 import ui from "../tasks/Workspace.module.css";
 import s from "./Attendance.module.css";
+import { AfterHoursControl, AfterHoursReport } from "./AfterHoursWork";
 type Editor = {
   onBehalf?: boolean;
   kind: string;
@@ -41,7 +42,7 @@ type Editor = {
   minutes?: number;
 };
 type Tab =
-  "overview" | "requests" | "sessions" | "approvals" | "absences" | "history";
+  "overview" | "requests" | "sessions" | "approvals" | "absences" | "history" | "after_hours";
 
 export default function AttendanceWorkspace({
   absenceModule = false,
@@ -128,7 +129,7 @@ export default function AttendanceWorkspace({
     }
   }, [toast]);
   async function run(action: string, payload: Record<string, unknown> = {}) {
-    if (busy) return false;
+    if (saving.current) return false;
     setBusy(true);
     saving.current = true;
     ++sequence.current;
@@ -152,7 +153,11 @@ export default function AttendanceWorkspace({
           ? "Příchod je zaznamenaný."
           : action === "checkout"
             ? "Odchod je zaznamenaný."
-            : "Změna je uložená.",
+            : action === "after_hours_start"
+              ? "Práce mimo pracovní dobu je spuštěná."
+              : action === "after_hours_stop"
+                ? "Práce mimo pracovní dobu je ukončená."
+                : "Změna je uložená.",
       );
       return true;
     } catch (e) {
@@ -431,6 +436,9 @@ export default function AttendanceWorkspace({
     : [
         { id: "overview", label: "Přehled" },
         { id: "requests", label: "Dovolená a osobní volno" },
+        ...(canManageLeave && data.after_hours?.can_view_reports
+          ? [{ id: "after_hours" as Tab, label: "Práce mimo pracovní dobu" }]
+          : []),
         ...(!hiddenWorklog
           ? [{ id: "sessions" as Tab, label: "Příchody a odchody" }]
           : []),
@@ -666,7 +674,7 @@ export default function AttendanceWorkspace({
             <div className={s.presenceActions}>
               {homeToday && (isWorking || !vacationToday) && (
                 <button
-                  disabled={busy}
+                  disabled={busy || (!isWorking && data.after_hours?.is_working)}
                   className={isWorking ? ui.secondary : ui.primary}
                   onClick={() => void run(isWorking ? "checkout" : "checkin")}
                 >
@@ -692,8 +700,17 @@ export default function AttendanceWorkspace({
                 + Home office
               </button>
               <small>Příchody a odchody potvrzujete tlačítky.</small>
+              {data.after_hours?.is_working && <small>Nejprve ukončete práci mimo pracovní dobu.</small>}
             </div>
           </section>
+        )}
+        {!absenceModule && data.after_hours && (
+          <AfterHoursControl
+            working={data.after_hours.is_working}
+            regularWorking={isWorking}
+            busy={busy}
+            onToggle={() => void run(data.after_hours?.is_working ? "after_hours_stop" : "after_hours_start")}
+          />
         )}
         {weeklyDashboard ? (
           <section className={ui.stats} aria-label="Souhrn zobrazeného týdne">
@@ -847,6 +864,12 @@ export default function AttendanceWorkspace({
             </button>
           ))}
         </div>
+        {tab === "after_hours" && canManageLeave && data.after_hours?.can_view_reports && (
+          <AfterHoursReport
+            sessions={data.after_hours.sessions.filter((session) => selected(session.username))}
+            year={year}
+          />
+        )}
         {owner &&
           team &&
           ["overview", "sessions", "absences"].includes(tab) && (

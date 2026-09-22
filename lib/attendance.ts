@@ -42,6 +42,11 @@ export type WorkSession = {
   ended_at: string | null;
 };
 export type AttendanceData = {
+  after_hours?: {
+    is_working: boolean;
+    can_view_reports: boolean;
+    sessions: (WorkSession & { display_name: string; minutes: number })[];
+  };
   worklog_hidden?: boolean;
   is_working?: boolean;
   daily_work?: {
