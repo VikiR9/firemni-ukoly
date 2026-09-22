@@ -1823,3 +1823,26 @@
 }
 
 .withAvailability { flex-wrap: wrap; }
+.mineToggle {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px;
+  padding: 10px 14px;
+  margin: 0 0 16px;
+  border: 1px solid #dce5df;
+  border-radius: 10px;
+  background: #fff;
+  width: fit-content;
+  min-height: 44px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.mineToggle input {
+  width: 17px;
+  height: 17px;
+  accent-color: #177d6b;
+}
+.mineToggle small {
+  color: #60756a;
+}

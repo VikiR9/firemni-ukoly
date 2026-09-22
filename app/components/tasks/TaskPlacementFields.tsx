@@ -109,7 +109,10 @@ export default function TaskPlacementFields({
   return (
     <fieldset disabled={busy}>
       <div className={s.formRow}>
-        <label className={s.field}>
+        <label
+          className={s.field}
+          style={!projectId ? { gridColumn: "1 / -1" } : undefined}
+        >
           Můj projekt
           <select
             className={s.select}
@@ -122,7 +125,7 @@ export default function TaskPlacementFields({
               onChange(null);
             }}
           >
-            <option value="">Bez projektu · Všechny úkoly</option>
+            <option value="">Bez projektu</option>
             {projectId && !available.some((p) => p.id === projectId) && (
               <option value={projectId} disabled>
                 Nedostupný projekt
@@ -135,40 +138,42 @@ export default function TaskPlacementFields({
             ))}
           </select>
         </label>
-        <label className={s.field}>
-          Sloupec
-          <select
-            className={s.select}
-            required
-            disabled={!destination}
-            value={columnId}
-            onChange={(e) => {
-              setColumnId(e.target.value);
-              if (destination && source.current) {
-                onChange({
-                  project_id: projectId || null,
-                  column_id: e.target.value,
-                  revision: destination.revision,
-                  source_project_id: source.current.project_id,
-                  source_column_id: source.current.column_id,
-                  source_revision: source.current.revision,
-                });
-                onDraftChange(projectId || null, e.target.value);
-              }
-            }}
-          >
-            {!destination && (
-              <option value="">
-                {error ? "Sloupce nejsou dostupné" : "Načítám sloupce…"}
-              </option>
-            )}
-            {destination?.columns.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.title}
-              </option>
-            ))}
-          </select>
-        </label>
+        {projectId && (
+          <label className={s.field}>
+            Sloupec
+            <select
+              className={s.select}
+              required
+              disabled={!destination}
+              value={columnId}
+              onChange={(e) => {
+                setColumnId(e.target.value);
+                if (destination && source.current) {
+                  onChange({
+                    project_id: projectId || null,
+                    column_id: e.target.value,
+                    revision: destination.revision,
+                    source_project_id: source.current.project_id,
+                    source_column_id: source.current.column_id,
+                    source_revision: source.current.revision,
+                  });
+                  onDraftChange(projectId || null, e.target.value);
+                }
+              }}
+            >
+              {!destination && (
+                <option value="">
+                  {error ? "Sloupce nejsou dostupné" : "Načítám sloupce…"}
+                </option>
+              )}
+              {destination?.columns.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.title}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
       </div>
       <p className={s.savedDraft}>
         Příjemce si projekt a sloupec zvolí sám při přijetí. Ve sdíleném

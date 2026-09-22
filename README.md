@@ -95,7 +95,7 @@ Karina a Vendula mají omezený zaměstnanecký pohled: API jim neposílá praco
 
 ## Nástěnka úkolů a vlastní sloupce
 
-Řešitelé se vybírají v rozbalovacím poli s vyhledáváním; lze vybrat více lidí. Nový úkol lze založit přímo tlačítkem v příslušném sloupci. Sloupce jsou společné organizační sekce: majitel je přidává, přejmenovává, přesouvá a odstraňuje. Při odstranění musí vybrat cílový sloupec pro všechny úkoly, včetně těch skrytých filtrem. Úkoly se nemažou. Stav jednotlivých řešitelů a schvalování zůstávají samostatně na kartě a v detailu.
+Řešitelé se vybírají v rozbalovacím poli s vyhledáváním; lze vybrat více lidí. V konkrétním projektu lze nový úkol založit přímo tlačítkem v příslušném sloupci. Sloupce projektu jsou společné organizační sekce pro jeho členy. Při odstranění sloupce musí uživatel vybrat cílový sloupec pro všechny úkoly, včetně těch skrytých filtrem. Úkoly se nemažou. Stav jednotlivých řešitelů a schvalování zůstávají samostatně na kartě a v detailu.
 
 Úchyt na kartě přesouvá úkol mezi sloupci i v rámci jejich ručního pořadí; úchyt v záhlaví řadí sloupce. Na dotykovém zařízení se úchyt krátce podrží. Klávesnice používá mezerník, šipky a mezerník pro dokončení, Escape pro zrušení. Alternativou je výběr cílového sloupce na kartě a přesuny vlevo/vpravo v nabídce sloupce.
 
@@ -107,7 +107,11 @@ Bezpečnostní aktualizace z 10. 9. 2026: Next.js a eslint-config-next 16.3.4, P
 
 ## Osobní projekty a kalendář úkolů
 
-Každý člen týmu může přes „Nový projekt“ založit vlastní projekt. Projekt má samostatné sloupce, pořadí a revizi; jeho autor upravuje názvy, přidává, odebírá a řadí sloupce. Majitel může zobrazit projekty zaměstnanců. Viktor může spravovat všechny projekty; Milan upravuje cizí nástěnku jako člen projektu. „Všechny úkoly“ zachovává původní společnou nástěnku. Výběr projektu se pamatuje pro konkrétní účet v prohlížeči.
+Každý člen týmu může přes „Nový projekt“ založit vlastní projekt. Projekt má samostatné sloupce, pořadí a revizi; jeho autor upravuje názvy, přidává, odebírá a řadí sloupce. Majitel může zobrazit projekty zaměstnanců. Viktor může spravovat všechny projekty; Milan upravuje cizí nástěnku jako člen projektu. Výběr projektu se pamatuje pro konkrétní účet v prohlížeči.
+
+„Všechny úkoly“ jsou automatický přehled: každý sloupec nástěnky představuje dostupný projekt, poslední sloupec „Bez projektu“ obsahuje úkoly bez dostupného zařazení. Úkol v několika projektech se ukáže v každém příslušném sloupci; souhrny počítají unikátní úkoly. Kliknutí na záhlaví otevře projekt. Tento přehled nemá přetahování, vlastní sloupce ani ruční pořadí; API odmítá přímé úpravy původní globální nástěnky. Řazení podle termínu, data vytvoření a priority dál funguje. Úkoly lze otevírat a upravovat podle dosavadních oprávnění. Při volbě „Bez projektu“ v editoru se žádný další sloupec nevybírá.
+
+V každém projektu přepínač „Jen moje úkoly“ filtruje podle přihlášeného řešitele a používá také jeho stav dokončení, připomenutí a schvalování. Platí pro nástěnku, seznam, kalendář i souhrnné počty. Volba se pamatuje v prohlížeči zvlášť pro účet a projekt a nemění kolegům zařazení ani zobrazení. Testy přehledu a blokování úprav: `node --test tests/project-overview.test.mjs`.
 
 Projekt může obsahovat nový i již existující úkol. Jeden úkol lze zařadit do více osobních projektů; jeho obsah a řešitelé jsou společné, umístění v projektech je nezávislé. Autor vybírá dostupné vlastní nebo přidělené úkoly; majitel má přístup k týmovým úkolům. Sloupce a umístění ukládá soukromé schéma task_board_private přes serverovou autorizaci; přímý přístup anonymních klientů je zakázaný. SQL test db/tests/task_projects.sql ověřuje oddělení projektů, oprávnění, revize a zachování sdílených úkolů.
 

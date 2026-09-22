@@ -30,13 +30,14 @@ import TaskHandoff from "./TaskHandoff";
 import InstallApp from "./InstallApp";
 import PushNotifications from "../PushNotifications";
 import TaskBoard from "./TaskBoard";
+import ProjectOverviewBoard from "./ProjectOverviewBoard";
 import ProjectPicker from "./ProjectPicker";
 import TaskCalendar from "./TaskCalendar";
 import CompletionCelebration from "./CompletionCelebration";
 import TaskInbox, { inInbox } from "./TaskInbox";
 import ProjectLabels from "./ProjectLabels";
 import TeamAvailability from "./TeamAvailability";
-import type { BoardSnapshot } from "@/lib/task-board";
+import { parseProjectMineFilters, type BoardSnapshot } from "@/lib/task-board";
 import s from "./Workspace.module.css";
 const USERS = getAllUsers();
 type Filter = "active" | "today" | "overdue" | "review" | "done";
@@ -122,12 +123,29 @@ export default function TaskWorkspace() {
   const [board, setBoard] = useState<BoardSnapshot | null>(null);
   const [boardError, setBoardError] = useState("");
   const [projectId, setProjectId] = useState("");
+  const [projectMineFilters, setProjectMineFilters] = useState<
+    Record<string, boolean>
+  >({});
+  const onlyMine = !!projectId && projectMineFilters[projectId] === true;
+  function changeOnlyMine(enabled: boolean) {
+    if (!projectId || !user) return;
+    const next = { ...projectMineFilters };
+    if (enabled) next[projectId] = true;
+    else delete next[projectId];
+    setProjectMineFilters(next);
+    try {
+      localStorage.setItem(
+        "limmit:project-mine:v1:" + user.username,
+        JSON.stringify(next),
+      );
+    } catch {}
+  }
   const sortContext = taskSortContext(projectId, scope, filter, view);
   const savedSort = sortPreferences[sortContext];
   const sort =
-    savedSort && (savedSort !== "manual" || view === "board")
+    savedSort && (savedSort !== "manual" || (view === "board" && !!projectId))
       ? savedSort
-      : view === "board"
+      : view === "board" && projectId
         ? "manual"
         : "due";
   function changeSort(value: TaskSort) {
@@ -244,6 +262,11 @@ export default function TaskWorkspace() {
           localStorage.getItem("limmit:task-sorts:v1:" + session.username),
         ),
       );
+      setProjectMineFilters(
+        parseProjectMineFilters(
+          localStorage.getItem("limmit:project-mine:v1:" + session.username),
+        ),
+      );
     } catch {}
     setOnline(navigator.onLine);
     void refresh();
@@ -282,7 +305,9 @@ export default function TaskWorkspace() {
     }
   }, [toast]);
   const person = projectId
-    ? undefined
+    ? onlyMine
+      ? user?.displayName
+      : undefined
     : scope === "ME"
       ? user?.displayName
       : ["TEAM", "CREATED"].includes(scope)
@@ -292,7 +317,9 @@ export default function TaskWorkspace() {
     () =>
       tasks.filter((t) =>
         projectId
-          ? !!board?.placements.some((p) => p.task_id === t.id)
+          ? !!board?.placements.some((p) => p.task_id === t.id) &&
+            (!onlyMine ||
+              t.task_assignments.some((a) => a.assignee === user?.displayName))
           : scope === "CREATED"
             ? t.created_by === user?.displayName
             : !person ||
@@ -310,7 +337,16 @@ export default function TaskWorkspace() {
                       ),
                   ))),
       ),
-    [tasks, person, scope, user?.displayName, user?.username, projectId, board],
+    [
+      tasks,
+      person,
+      scope,
+      user?.displayName,
+      user?.username,
+      projectId,
+      board,
+      onlyMine,
+    ],
   );
   const taskProjects = (id: string) =>
     (board?.projects || []).filter((p) =>
@@ -702,6 +738,17 @@ export default function TaskWorkspace() {
             onSaved={acceptBoard}
           />
         )}
+        {!!projectId && (
+          <label className={s.mineToggle}>
+            <input
+              type="checkbox"
+              checked={onlyMine}
+              onChange={(e) => changeOnlyMine(e.target.checked)}
+            />
+            <span>Jen moje úkoly</span>
+            <small>Úkoly přiřazené mně</small>
+          </label>
+        )}
         <TaskInbox
           tasks={tasks}
           user={user}
@@ -943,7 +990,10 @@ export default function TaskWorkspace() {
             onChange={(e) => changeSort(e.target.value as TaskSort)}
           >
             {Object.entries(TASK_SORT_LABELS)
-              .filter(([key]) => key !== "manual" || view === "board")
+              .filter(
+                ([key]) =>
+                  key !== "manual" || (view === "board" && !!projectId),
+              )
               .map(([key, label]) => (
                 <option key={key} value={key}>
                   {label}
@@ -1004,7 +1054,22 @@ export default function TaskWorkspace() {
                 )}
               </div>
             )}
-            {board && (
+            {board && !projectId && (
+              <ProjectOverviewBoard
+                board={board}
+                tasks={filtered}
+                onProject={switchProject}
+                renderCard={(t) => (
+                  <TaskCard
+                    task={t}
+                    projects={taskProjects(t.id)}
+                    person={person}
+                    onOpen={() => setSelectedId(t.id)}
+                  />
+                )}
+              />
+            )}
+            {board && !!projectId && (
               <TaskBoard
                 key={projectId || "all"}
                 board={board}

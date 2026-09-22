@@ -145,6 +145,26 @@
   min-width: 0;
   overflow-wrap: anywhere;
 }
+.projectLink {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-height: 32px;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+.projectLink:hover {
+  color: #177d6b;
+}
+.overviewCards {
+  display: grid;
+  gap: 10px;
+}
 .count {
   font-size: 11px;
   color: #7e8e84;
