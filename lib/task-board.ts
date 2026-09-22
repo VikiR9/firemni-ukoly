@@ -1,4 +1,5 @@
 import type { Task } from "./tasks";
+import type { User } from "./auth";
 
 export type BoardColumn = { id: string; title: string; position: number };
 export type BoardPlacement = {
@@ -55,6 +56,33 @@ export function projectTaskGroups(
     else for (const id of ids) byProject.get(id)!.tasks.push(task);
   }
   return [...groups, unassigned];
+}
+
+export function projectsForScope(
+  board: BoardSnapshot,
+  user: User,
+  scope: string,
+  people: readonly User[],
+) {
+  if (scope === "TEAM" && user.role === "OWNER") return board.projects || [];
+  const person =
+    user.role === "OWNER"
+      ? people.find((p) => p.displayName === scope) || user
+      : user;
+  return (board.projects || []).filter(
+    (p) =>
+      p.owner_username === person.username ||
+      p.member_usernames?.includes(person.username),
+  );
+}
+
+export function mergeProjectOrder(
+  allIds: readonly string[],
+  visibleIds: readonly string[],
+) {
+  const visible = new Set(visibleIds);
+  let index = 0;
+  return allIds.map((id) => (visible.has(id) ? visibleIds[index++] : id));
 }
 
 export function parseProjectMineFilters(

@@ -17,7 +17,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import type { BoardSnapshot } from "@/lib/task-board";
+import { mergeProjectOrder, type BoardSnapshot } from "@/lib/task-board";
 import { getAllUsers } from "@/lib/auth";
 import Modal from "./Modal";
 import s from "./Projects.module.css";
@@ -30,16 +30,19 @@ const ownerName = (project: Project) =>
 
 export default function ProjectOrderDialog({
   board,
+  visibleProjects = board.projects || [],
   onClose,
   onSaved,
 }: {
   board: BoardSnapshot;
+  visibleProjects?: NonNullable<BoardSnapshot["projects"]>;
   onClose: () => void;
   onSaved: (snapshot: BoardSnapshot) => void;
 }) {
   // Keep the opening revision: an automatic refresh must not silently overwrite another device's order.
   const initial = useRef(board);
-  const [projects, setProjects] = useState(board.projects || []);
+  const initialVisible = useRef(visibleProjects);
+  const [projects, setProjects] = useState(visibleProjects);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -53,7 +56,7 @@ export default function ProjectOrderDialog({
     }),
   );
   const changed = projects.some(
-    (p, i) => p.id !== initial.current.projects?.[i]?.id,
+    (p, i) => p.id !== initialVisible.current[i]?.id,
   );
   function move(from: number, to: number) {
     if (busy || from === to || from < 0 || to < 0 || to >= projects.length)
@@ -76,7 +79,10 @@ export default function ProjectOrderDialog({
           action: "reorder_projects",
           project_id: initial.current.project_id,
           project_order_revision: initial.current.project_order_revision ?? 0,
-          project_ids: projects.map((p) => p.id),
+          project_ids: mergeProjectOrder(
+            (initial.current.projects || []).map((p) => p.id),
+            projects.map((p) => p.id),
+          ),
         }),
       });
       const result = await response.json();
@@ -120,9 +126,16 @@ export default function ProjectOrderDialog({
           collisionDetection={closestCenter}
           accessibility={{
             announcements: {
-              onDragStart: ({ active }) => `Přesouváte projekt ${projects.find(p => p.id === active.id)?.title || ""}.`,
-              onDragOver: ({ over }) => over ? `Cílová pozice ${projects.findIndex(p => p.id === over.id) + 1} z ${projects.length}.` : undefined,
-              onDragEnd: ({ over }) => over ? `Projekt je na pozici ${projects.findIndex(p => p.id === over.id) + 1}. Pořadí potvrďte tlačítkem Uložit pořadí.` : "Přesun zrušen.",
+              onDragStart: ({ active }) =>
+                `Přesouváte projekt ${projects.find((p) => p.id === active.id)?.title || ""}.`,
+              onDragOver: ({ over }) =>
+                over
+                  ? `Cílová pozice ${projects.findIndex((p) => p.id === over.id) + 1} z ${projects.length}.`
+                  : undefined,
+              onDragEnd: ({ over }) =>
+                over
+                  ? `Projekt je na pozici ${projects.findIndex((p) => p.id === over.id) + 1}. Pořadí potvrďte tlačítkem Uložit pořadí.`
+                  : "Přesun zrušen.",
               onDragCancel: () => "Přesun zrušen.",
             },
             screenReaderInstructions: {

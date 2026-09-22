@@ -9,6 +9,7 @@ import s from "./Workspace.module.css";
 import styles from "./Projects.module.css";
 export default function ProjectPicker({
   board,
+  visibleProjects = board.projects || [],
   username,
   tasks,
   disabled,
@@ -16,6 +17,7 @@ export default function ProjectPicker({
   onSaved,
 }: {
   board: BoardSnapshot;
+  visibleProjects?: NonNullable<BoardSnapshot["projects"]>;
   username: string;
   tasks: Task[];
   disabled: boolean;
@@ -85,7 +87,7 @@ export default function ProjectPicker({
             </span>
             <span>Všechny úkoly</span>
           </button>
-          {board.projects?.map((p) => (
+          {visibleProjects.map((p) => (
             <button
               key={p.id}
               type="button"
@@ -155,7 +157,7 @@ export default function ProjectPicker({
             </>
           )}
         </div>
-        {(board.projects?.length ?? 0) > 1 && (
+        {visibleProjects.length > 1 && (
           <button
             className={styles.orderToggle}
             disabled={disabled || busy}
@@ -170,6 +172,7 @@ export default function ProjectPicker({
       </div>
       {ordering && (
         <ProjectOrderDialog
+          visibleProjects={visibleProjects}
           board={board}
           onClose={() => setOrdering(false)}
           onSaved={onSaved}

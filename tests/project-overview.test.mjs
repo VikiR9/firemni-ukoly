@@ -4,7 +4,36 @@ import {
   projectTaskGroups,
   parseProjectMineFilters,
   isOverviewLayoutMutation,
+  projectsForScope,
+  mergeProjectOrder,
 } from "../lib/task-board.ts";
+
+test("personal projects include ownership and membership, while colleagues and team remain accessible", () => {
+  const owner = { username: "VIKTOR", displayName: "Viktor", role: "OWNER" };
+  const colleague = {
+    username: "KARINA",
+    displayName: "Karina",
+    role: "EMPLOYEE",
+  };
+  const board = {
+    projects: [
+      { id: "own", owner_username: "VIKTOR" },
+      { id: "shared", owner_username: "KARINA", member_usernames: ["VIKTOR"] },
+      { id: "foreign", owner_username: "KARINA" },
+    ],
+  };
+  const ids = (user, scope) =>
+    projectsForScope(board, user, scope, [owner, colleague]).map((p) => p.id);
+  assert.deepEqual(ids(owner, "ME"), ["own", "shared"]);
+  assert.deepEqual(ids(owner, "CREATED"), ["own", "shared"]);
+  assert.deepEqual(ids(owner, "Karina"), ["shared", "foreign"]);
+  assert.deepEqual(ids(owner, "TEAM"), ["own", "shared", "foreign"]);
+  assert.deepEqual(ids(colleague, "TEAM"), ["shared", "foreign"]);
+  assert.deepEqual(
+    mergeProjectOrder(["own", "foreign", "shared"], ["shared", "own"]),
+    ["shared", "foreign", "own"],
+  );
+});
 
 test("overview uses project order and keeps a shared task in every relevant project", () => {
   const tasks = [{ id: "shared" }, { id: "orphan" }, { id: "single" }];

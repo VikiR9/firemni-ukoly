@@ -163,7 +163,11 @@
 }
 .overviewCards {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 10px;
+}
+.overviewCards > div {
+  min-width: 0;
 }
 .count {
   font-size: 11px;

@@ -37,7 +37,11 @@ import CompletionCelebration from "./CompletionCelebration";
 import TaskInbox, { inInbox } from "./TaskInbox";
 import ProjectLabels from "./ProjectLabels";
 import TeamAvailability from "./TeamAvailability";
-import { parseProjectMineFilters, type BoardSnapshot } from "@/lib/task-board";
+import {
+  parseProjectMineFilters,
+  projectsForScope,
+  type BoardSnapshot,
+} from "@/lib/task-board";
 import s from "./Workspace.module.css";
 const USERS = getAllUsers();
 type Filter = "active" | "today" | "overdue" | "review" | "done";
@@ -123,6 +127,10 @@ export default function TaskWorkspace() {
   const [board, setBoard] = useState<BoardSnapshot | null>(null);
   const [boardError, setBoardError] = useState("");
   const [projectId, setProjectId] = useState("");
+  const visibleProjects = useMemo(
+    () => (board && user ? projectsForScope(board, user, scope, USERS) : []),
+    [board, user, scope],
+  );
   const [projectMineFilters, setProjectMineFilters] = useState<
     Record<string, boolean>
   >({});
@@ -219,6 +227,32 @@ export default function TaskWorkspace() {
       }
     }
     if (boardResult.ok) {
+      // Older saved project selections did not store their sidebar context.
+      const session = loadSession();
+      if (session && requestedProject && boardResult.data.project_id) {
+        const savedScope =
+          localStorage.getItem("limmit:task-scope:" + session.username) || "ME";
+        const projects = boardResult.data.projects || [];
+        if (
+          !projectsForScope(boardResult.data, session, savedScope, USERS).some(
+            (p) => p.id === requestedProject,
+          )
+        ) {
+          const project = projects.find(
+            (p: { id: string }) => p.id === requestedProject,
+          );
+          const owner = USERS.find(
+            (p) => p.username === project?.owner_username,
+          );
+          if (session.role === "OWNER" && owner) {
+            setScope(owner.displayName);
+            localStorage.setItem(
+              "limmit:task-scope:" + session.username,
+              owner.displayName,
+            );
+          }
+        }
+      }
       setBoard(boardResult.data);
       setBoardError("");
     } else setBoardError(boardResult.data.error);
@@ -253,6 +287,18 @@ export default function TaskWorkspace() {
         : localStorage.getItem("limmit:task-project:" + session.username) || "";
       projectRef.current = savedProject;
       setProjectId(savedProject);
+      const savedScope = localStorage.getItem(
+        "limmit:task-scope:" + session.username,
+      );
+      if (
+        !overdueDigest &&
+        savedScope &&
+        (["ME", "CREATED"].includes(savedScope) ||
+          (session.role === "OWNER" &&
+            (savedScope === "TEAM" ||
+              USERS.some((p) => p.displayName === savedScope))))
+      )
+        setScope(savedScope);
       const saved = localStorage.getItem("limmit:task-view");
       if (saved === "list" || saved === "board" || saved === "calendar")
         setView(saved);
@@ -349,7 +395,7 @@ export default function TaskWorkspace() {
     ],
   );
   const taskProjects = (id: string) =>
-    (board?.projects || []).filter((p) =>
+    visibleProjects.filter((p) =>
       board?.project_memberships?.some(
         (m) => m.project_id === p.id && m.task_id === id,
       ),
@@ -457,6 +503,9 @@ export default function TaskWorkspace() {
       void refresh();
     }
     setScope(value);
+    try {
+      localStorage.setItem("limmit:task-scope:" + user?.username, value);
+    } catch {}
     setFilter("active");
     setQuery("");
     setStatusFilter("all");
@@ -471,7 +520,6 @@ export default function TaskWorkspace() {
     setBoard(null);
     setLoading(true);
     setSelectedId(null);
-    setScope("ME");
     setFilter("active");
     try {
       localStorage.setItem("limmit:task-project:" + user?.username, id);
@@ -726,6 +774,7 @@ export default function TaskWorkspace() {
         {board && (
           <ProjectPicker
             board={board}
+            visibleProjects={visibleProjects}
             username={user.username}
             tasks={tasks.filter(
               (t) =>
@@ -1056,7 +1105,7 @@ export default function TaskWorkspace() {
             )}
             {board && !projectId && (
               <ProjectOverviewBoard
-                board={board}
+                board={{ ...board, projects: visibleProjects }}
                 tasks={filtered}
                 onProject={switchProject}
                 renderCard={(t) => (
