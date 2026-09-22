@@ -1,0 +1,484 @@
+.section {
+  background: white;
+  border: 1px solid #e1e9e4;
+  border-radius: 14px;
+  padding: 23px;
+  margin-bottom: 22px;
+}
+.section h2 {
+  font-size: 17px;
+  font-weight: 650;
+  margin: 0;
+  letter-spacing: -0.4px;
+}
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 18px;
+}
+.muted {
+  font-size: 12px;
+  line-height: 1.7;
+  color: #7b8d84;
+}
+.presence {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 22px;
+  align-items: center;
+  background: #e7f2ec;
+  border: 1px solid #cce2d6;
+  border-radius: 14px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+.presence[data-online="true"] {
+  background: #e0f2e7;
+}
+.presence h2 {
+  font-size: 21px;
+  font-weight: 650;
+  margin: 8px 0;
+  letter-spacing: -0.6px;
+}
+.presence p {
+  margin: 0;
+  font-size: 12px;
+  color: #6a8372;
+  line-height: 1.7;
+}
+.pill {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-size: 10px;
+  font-weight: 650;
+  background: #edf3ef;
+  color: #5b7b68;
+}
+.pill[data-status="APPROVED"],
+.pill[data-status="EXCUSED"] {
+  background: #e3f2e7;
+  color: #347650;
+}
+.pill[data-status="PENDING"],
+.pill[data-status="REQUESTED"],
+.pill[data-status="SUBMITTED"] {
+  background: #fff1d8;
+  color: #9c782f;
+}
+.pill[data-status="REJECTED"],
+.pill[data-status="OPEN"] {
+  background: #fff0e9;
+  color: #b2654d;
+}
+.tableWrap {
+  overflow-x: auto;
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.table th {
+  font-size: 10px;
+  font-weight: 650;
+  color: #869789;
+  border-bottom: 1px solid #e4ebe5;
+  padding: 12px 10px;
+}
+.table td {
+  padding: 16px 10px;
+  border-bottom: 1px solid #eef2ef;
+  vertical-align: top;
+  color: #345443;
+}
+.table tbody tr:last-child td {
+  border: 0;
+}
+.table small {
+  display: block;
+  font-size: 10px;
+  line-height: 1.7;
+  color: #869b87;
+  margin-top: 4px;
+  max-width: 250px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.table strong {
+  font-weight: 650;
+}
+.tableActions {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.tableActions button {
+  min-height: 34px;
+  padding: 7px 9px;
+  font-size: 10px;
+}
+.week {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+.day {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #e0e8e1;
+  border-radius: 10px;
+  padding: 16px;
+  min-height: 110px;
+  gap: 9px;
+  background: #f9fbf8;
+}
+.day strong {
+  font-size: 13px;
+}
+.day span {
+  font-size: 10px;
+  color: #80957f;
+}
+.day small {
+  font-size: 11px;
+  color: #6a8067;
+}
+.day[data-home="true"] {
+  background: #eaf4ed;
+  border-color: #a8ccb1;
+}
+.day[data-disabled="true"] {
+  opacity: 0.5;
+}
+.planDay {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid #dfe8dc;
+  background: white;
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.planDay:has(input:checked) {
+  background: #e9f4ea;
+  border-color: #83b78a;
+}
+.planDay input {
+  accent-color: #217d59;
+  width: 18px;
+  height: 18px;
+}
+.planDay:has(input:disabled) {
+  opacity: 0.5;
+  cursor: default;
+}
+.planDay small {
+  margin-left: auto;
+  font-size: 10px;
+  color: #8a9b82;
+}
+.balanceGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+.balance {
+  border: 1px solid #e1e9dd;
+  border-radius: 10px;
+  padding: 17px;
+}
+.balance h3 {
+  font-size: 13px;
+  margin: 0 0 14px;
+  font-weight: 650;
+}
+.balance strong {
+  font-size: 27px;
+  letter-spacing: -1px;
+  color: #286143;
+}
+.balance p {
+  font-size: 11px;
+  color: #89987e;
+  margin-top: 8px;
+}
+.timeline {
+  border-left: 2px solid #dce7d7;
+  padding-left: 16px;
+  margin-bottom: 18px;
+}
+.timeline strong {
+  font-size: 12px;
+}
+.timeline p {
+  font-size: 11px;
+  color: #849579;
+  line-height: 1.7;
+  margin: 6px 0;
+}
+.timeline time {
+  font-size: 10px;
+  color: #96a489;
+}
+.formIntro {
+  font-size: 12px;
+  color: #7e9378;
+  line-height: 1.8;
+  margin: 0 0 20px;
+}
+.filterBar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.empty {
+  padding: 26px;
+  text-align: center;
+  color: #8b9c82;
+  font-size: 12px;
+}
+.summary {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin: 16px 0;
+  font-size: 12px;
+  color: #819476;
+}
+.summary b {
+  font-size: 20px;
+  color: #3d6e47;
+  font-weight: 600;
+  margin-right: 6px;
+}
+.callout {
+  border-left: 3px solid #d8b36b;
+  background: #fff8eb;
+  border-radius: 6px;
+  padding: 15px;
+  font-size: 12px;
+  color: #8b733d;
+  line-height: 1.8;
+  margin: 15px 0;
+}
+.actions {
+  display: flex;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+.login {
+  max-width: 520px;
+  margin: 90px auto;
+  padding: 30px;
+}
+.liveDot {
+  width: 7px;
+  height: 7px;
+  display: inline-block;
+  border-radius: 50%;
+  background: #55a473;
+  margin-right: 6px;
+}
+.range {
+  font-size: 10px;
+  color: #8b9a81;
+}
+.mobileNav {
+  display: none;
+}
+.sessionName {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.error {
+  border: 1px solid #f0cbbd;
+  border-radius: 10px;
+  background: #fff2ec;
+  color: #a25942;
+  padding: 14px;
+  margin: 15px 0;
+  font-size: 12px;
+}
+.sidebarLink {
+  color: #bcd0c6;
+  font-size: 13px;
+  padding: 10px 12px;
+  display: block;
+  border-radius: 8px;
+  text-decoration: none;
+}
+.sidebarLink:hover {
+  background: #ffffff10;
+}
+.counter {
+  margin-left: auto;
+  background: #ffffff12;
+  border-radius: 5px;
+  padding: 2px 5px;
+  font-size: 10px;
+}
+.presenceActions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.presenceActions small {
+  font-size: 10px;
+  color: #8b9e84;
+  text-align: center;
+}
+@media (max-width: 760px) {
+  .section {
+    padding: 17px;
+    margin-bottom: 16px;
+  }
+  .sectionHeader {
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .sectionHeader h2 {
+    font-size: 16px;
+  }
+  .sectionHeader button {
+    font-size: 10px;
+  }
+  .presence {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 20px;
+    gap: 16px;
+  }
+  .presence h2 {
+    font-size: 20px;
+  }
+  .presenceActions button {
+    width: 100%;
+    min-height: 48px;
+  }
+  .week {
+    gap: 5px;
+  }
+  .day {
+    padding: 10px 6px;
+    min-height: 102px;
+    gap: 7px;
+  }
+  .day strong {
+    font-size: 11px;
+  }
+  .day span,
+  .day small {
+    font-size: 9px;
+  }
+  .table {
+    font-size: 11px;
+  }
+  .table th,
+  .table td {
+    padding: 12px 8px;
+  }
+  .tableActions button {
+    min-height: 42px;
+    font-size: 11px;
+  }
+  .balanceGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px;
+  }
+  .balance {
+    padding: 14px;
+  }
+  .mobileNav {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    margin-bottom: 20px;
+  }
+  .mobileNav button,
+  .mobileNav a {
+    white-space: nowrap;
+    font-size: 11px;
+  }
+  .login {
+    margin: 30px 18px;
+  }
+  .summary {
+    gap: 12px;
+  }
+  .summary b {
+    font-size: 17px;
+  }
+}
+.weekTable {
+  min-width: 820px;
+  margin-top: 20px;
+}
+.weekTable th[data-today="true"],
+.weekTable td[data-today="true"] {
+  background: #f0f8f5;
+}
+.weekCell {
+  padding: 12px 10px;
+  border-radius: 10px;
+  background: #f5f7f8;
+  min-height: 54px;
+}
+.weekCell[data-mode="home"] {
+  background: #e1f1eb;
+  color: #186859;
+}
+.weekCell[data-mode="vacation"] {
+  background: #e6edfc;
+  color: #365884;
+}
+.weekCell[data-mode="pending"] {
+  background: #fff2d9;
+  color: #826025;
+}
+.weekCell[data-mode="off"] {
+  background: #f5f5f5;
+  color: #84918d;
+}
+.weekCell small {
+  margin-top: 8px;
+}
+@media (max-width: 640px) {
+  .ownWeek {
+    min-width: 0;
+  }
+  .ownWeek thead {
+    display: none;
+  }
+  .ownWeek tbody,
+  .ownWeek tr {
+    display: block;
+  }
+  .ownWeek tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .ownWeek td:first-child {
+    grid-column: 1 / -1;
+  }
+  .ownWeek td[data-day]::before {
+    content: attr(data-day);
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+}

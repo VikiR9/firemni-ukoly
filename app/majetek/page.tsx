@@ -18,7 +18,7 @@ import {
   sha256Hex,
 } from "@/lib/property-offer";
 import { downloadPropertyOfferPdf } from "@/lib/property-offer/pdf";
-import { LimmitLogo } from "@/lib/logo";
+import ModuleShell from "@/app/components/ModuleShell";
 import { supabase } from "@/lib/supabaseClient";
 import styles from "./PropertyEditor.module.css";
 
@@ -569,6 +569,12 @@ export default function PropertyOfferEditorPage() {
   }
 
   return (
+    <ModuleShell user={currentUser} title="Pojištění majetku" section="Majetek · klientské nabídky" subtitle="Srovnání nemovitosti, domácnosti a odpovědnosti na jednom místě."
+      items={[
+        { label: "Editor nabídky", icon: <AppIcon name="home" />, active: activeView === "editor", onClick: () => setActiveView("editor") },
+        { label: "Náhled a sdílení", icon: <AppIcon name="eye" />, active: activeView === "preview", onClick: () => setActiveView("preview") },
+      ]}
+      actions={<button className="module-action" onClick={resetReference}><AppIcon name="refresh" /> Referenční případ</button>}>
     <div className={styles.app}>
       {notice && (
         <div className={`${styles.notice} ${styles[notice.kind]}`} role="status">
@@ -576,42 +582,14 @@ export default function PropertyOfferEditorPage() {
         </div>
       )}
 
-      <header className={styles.header}>
-        <div className={styles.headerIdentity}>
-          <LimmitLogo height={28} variant="light" />
-          <span className={styles.headerDivider} />
-          <div>
-            <span className={styles.eyebrow}>Nemovitost · domácnost · odpovědnost</span>
-            <h1>Klientská nabídka</h1>
-          </div>
-        </div>
-        <div className={styles.headerActions}>
-          <button className={styles.quietButton} onClick={resetReference}>
-            <AppIcon name="refresh" /> Referenční případ
-          </button>
-          <button
-            className={activeView === "editor" ? styles.activeButton : styles.quietButton}
-            onClick={() => setActiveView("editor")}
-            aria-pressed={activeView === "editor"}
-          >
-            <AppIcon name="home" /> Editor
-          </button>
-          <button
-            className={activeView === "preview" ? styles.activeButton : styles.quietButton}
-            onClick={() => setActiveView("preview")}
-            aria-pressed={activeView === "preview"}
-          >
-            <AppIcon name="eye" /> Výstup
-          </button>
-        </div>
-      </header>
+
 
       {activeView === "editor" ? (
         <main className={styles.workspace}>
           <section className={styles.intro}>
             <div>
-              <span className={styles.kicker}>Nový modul</span>
-              <h2>Jedna datová pravda. Dva hotové výstupy.</h2>
+              <span className={styles.kicker}>Příprava nabídky</span>
+              <h2>Přehledná nabídka pro vašeho klienta.</h2>
               <p>
                 Webový odkaz i PDF vycházejí ze stejného srovnání. Ceny jsou roční,
                 měsíční splátky se neodvozují a každé krytí má jednoznačný stav.
@@ -619,7 +597,7 @@ export default function PropertyOfferEditorPage() {
             </div>
             <div className={styles.securityPill}>
               <AppIcon name="shield" size={20} />
-              <div><strong>Šifrované sdílení</strong><span>Klíč zůstává za znakem #</span></div>
+              <div><strong>Šifrované sdílení</strong><span>Soukromý odkaz pro klienta</span></div>
             </div>
           </section>
 
@@ -797,5 +775,6 @@ export default function PropertyOfferEditorPage() {
         </main>
       )}
     </div>
+    </ModuleShell>
   );
 }

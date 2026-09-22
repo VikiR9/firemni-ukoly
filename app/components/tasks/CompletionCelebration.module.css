@@ -1,0 +1,109 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  pointer-events: none;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  z-index: 99999;
+}
+.overlay::backdrop {
+  background: transparent;
+  pointer-events: none;
+}
+.toast {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #fffffff2;
+  box-shadow: 0 14px 60px #153b332e;
+  border: 1px solid #e6eddf;
+  border-radius: 24px;
+  padding: 12px 28px 25px;
+  color: #205345;
+  animation: appear 2.4s ease both;
+}
+.left {
+  transform-origin: 65px 110px;
+  animation: left 2.4s ease both;
+}
+.right {
+  transform-origin: 135px 110px;
+  animation: right 2.4s ease both;
+}
+.spark {
+  opacity: 0;
+  animation: spark 2.4s ease both;
+}
+@keyframes left {
+  0%,
+  18% {
+    transform: rotate(-15deg);
+  }
+  38%,
+  48% {
+    transform: rotate(13deg);
+  }
+  65%,
+  100% {
+    transform: rotate(0);
+  }
+}
+@keyframes right {
+  0%,
+  18% {
+    transform: rotate(15deg);
+  }
+  38%,
+  48% {
+    transform: rotate(-13deg);
+  }
+  65%,
+  100% {
+    transform: rotate(0);
+  }
+}
+@keyframes spark {
+  0%,
+  35%,
+  65%,
+  100% {
+    opacity: 0;
+  }
+  40%,
+  55% {
+    opacity: 1;
+  }
+}
+@keyframes appear {
+  0% {
+    opacity: 0;
+    transform: translateY(14px) scale(0.94);
+  }
+  15%,
+  82% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .toast,
+  .left,
+  .right,
+  .spark {
+    animation: none;
+  }
+  .spark {
+    opacity: 1;
+  }
+}

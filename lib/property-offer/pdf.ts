@@ -1,6 +1,7 @@
 "use client";
 
 import type { PropertyOffer } from ".";
+import { LIMMIT_LOGO_SRC } from "../logo";
 
 const A4_WIDTH_MM = 210;
 const A4_HEIGHT_MM = 297;
@@ -79,6 +80,10 @@ export async function downloadPropertyOfferPdf(
       creator: "LIMMIT firemní aplikace",
     });
 
+    const logoResponse = await fetch(LIMMIT_LOGO_SRC);
+    if (!logoResponse.ok) throw new Error("Logo pro PDF se nepodařilo načíst.");
+    const logoBytes = new Uint8Array(await logoResponse.arrayBuffer());
+
     for (let index = 0; index < pages.length; index += 1) {
       // Capture every page from the same viewport position. Capturing the
       // stacked, off-screen originals made html2canvas intermittently omit a
@@ -123,42 +128,12 @@ export async function downloadPropertyOfferPdf(
         "FAST",
       );
 
-      // Draw the small header logo as PDF vectors. html2canvas can
-      // intermittently skip an identical CSS-only brand on a later page.
-      const markX = 11.65;
-      const markY = 6.85;
-      const square = 2.65;
-      const markGap = 0.53;
-      const brandSquares = [
-        { x: markX, y: markY, color: [21, 159, 213] as const },
-        { x: markX + square + markGap, y: markY, color: [26, 46, 115] as const },
-        { x: markX, y: markY + square + markGap, color: [26, 46, 115] as const },
-        {
-          x: markX + square + markGap,
-          y: markY + square + markGap,
-          color: [21, 159, 213] as const,
-        },
-      ];
-      for (const brandSquare of brandSquares) {
-        pdf.setFillColor(
-          brandSquare.color[0],
-          brandSquare.color[1],
-          brandSquare.color[2],
-        );
-        pdf.roundedRect(
-          brandSquare.x,
-          brandSquare.y,
-          square,
-          square,
-          0.28,
-          0.28,
-          "F",
-        );
-      }
+      // Embed the supplied image on every page, without re-drawing the brand.
+      pdf.addImage(logoBytes, "PNG", 11.65, 6.3, 7.4, 7.4, "limmit-logo", "FAST");
       pdf.setFont("helvetica", "bold");
       pdf.setFontSize(15);
       pdf.setTextColor(26, 46, 115);
-      pdf.text("LIMMIT", 19.05, 12.35);
+      pdf.text("LIMMIT", 21.1, 12.35);
     }
 
     const issueDate = offer.issueDate || offer.generatedAt.slice(0, 10) || new Date().toISOString().slice(0, 10);

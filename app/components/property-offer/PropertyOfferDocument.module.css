@@ -105,31 +105,6 @@
   min-width: 112px;
 }
 
-.brandMark {
-  display: grid;
-  flex: 0 0 22px;
-  grid-template-columns: repeat(2, 10px);
-  grid-template-rows: repeat(2, 10px);
-  gap: 2px;
-}
-
-.brandMark i {
-  display: block;
-  border-radius: 1.5px;
-  background: #159fd5;
-}
-
-.brandMark i:nth-child(2),
-.brandMark i:nth-child(3) {
-  background: #1a2e73;
-}
-
-.brandWord {
-  color: #1a2e73;
-  font: 800 20px/1 Arial, sans-serif;
-  letter-spacing: -0.05em;
-}
-
 .documentKind {
   color: var(--offer-slate-600);
   font-size: 10px;

@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { loadSession, type User } from "@/lib/auth";
-import { LimmitLogo } from "@/lib/logo";
+import ModuleShell from "@/app/components/ModuleShell";
 import { 
   INSURERS, 
   CORE_INSURANCE_TYPES, 
@@ -319,23 +319,26 @@ export default function PruzkumPage() {
 
   if (!currentUser) {
     return (
-      <div className="min-h-screen bg-zinc-900 flex items-center justify-center">
-        <div className="text-white text-lg">Načítání...</div>
+      <div className="min-h-screen bg-[#f5f7f6] flex items-center justify-center">
+        <div className="text-[#182d35] text-lg">Načítání...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen font-sans bg-zinc-900 text-white">
+    <ModuleShell user={currentUser} title="Průzkum trhu" section="Srovnání pojištění" subtitle="Porovnejte pojišťovny a vyberte nejlepší varianty pro nabídku."
+      items={phases.map((item, index) => ({ label: item.label, icon: item.icon, active: phase === item.id, disabled: index > currentPhaseIndex, onClick: () => setPhase(item.id) }))}
+      actions={<button className="module-action" onClick={handleNewResearch}>{icons.refresh} Nový průzkum</button>}>
+
       {/* NOTIFICATION */}
       {notification && (
         <div
-          className={`fixed top-20 left-1/2 transform -translate-x-1/2 z-50 px-6 py-4 rounded-xl shadow-2xl text-white flex items-center gap-3 font-medium animate-fade-in ${
+          className={`module-notice fixed top-20 left-1/2 transform -translate-x-1/2 z-50 px-6 py-4 rounded-xl shadow-2xl text-white flex items-center gap-3 font-medium animate-fade-in ${
             notification.type === "error"
               ? "bg-red-500"
               : notification.type === "info"
-              ? "bg-blue-500"
-              : "bg-green-600"
+              ? "bg-[#147d70]"
+              : "bg-[#147d70]"
           }`}
         >
           {icons.checkCircle}
@@ -343,96 +346,48 @@ export default function PruzkumPage() {
         </div>
       )}
 
-      {/* APP HEADER */}
-      <header className="bg-[#1a1a5c] text-white sticky top-0 z-40 shadow-lg border-b border-blue-900">
-        <div className="max-w-[1800px] mx-auto px-6 py-3 flex justify-between items-center">
-          <div className="flex items-center gap-4">
-            <LimmitLogo height={28} variant="light" />
-            <div className="h-6 w-px bg-blue-800"></div>
-            <h1 className="text-lg font-bold tracking-wide">Průzkum trhu</h1>
-          </div>
-          <div className="flex gap-3">
-            <button
-              onClick={handleNewResearch}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500/10 text-red-100 hover:bg-red-500/20 hover:text-white transition-all text-sm font-medium"
-            >
-              {icons.refresh} Nový průzkum
-            </button>
-          </div>
-        </div>
-      </header>
-
-      {/* PHASE INDICATOR */}
-      <div className="bg-zinc-800 border-b border-zinc-700">
-        <div className="max-w-[1800px] mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            {phases.map((p, idx) => (
-              <div key={p.id} className="flex items-center flex-1">
-                <button
-                  onClick={() => idx <= currentPhaseIndex && setPhase(p.id)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
-                    phase === p.id
-                      ? "bg-[#009ee3] text-white shadow-md"
-                      : idx < currentPhaseIndex
-                      ? "bg-emerald-600/20 text-emerald-400 cursor-pointer hover:bg-emerald-600/30"
-                      : "bg-zinc-700/50 text-gray-500 cursor-not-allowed"
-                  }`}
-                  disabled={idx > currentPhaseIndex}
-                >
-                  {p.icon}
-                  <span className="font-medium">{p.label}</span>
-                </button>
-                {idx < phases.length - 1 && (
-                  <div className={`flex-1 h-0.5 mx-4 ${idx < currentPhaseIndex ? "bg-emerald-600" : "bg-zinc-700"}`} />
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <main className="max-w-[1800px] mx-auto p-6">
+      <main className="module-content">
         {/* CLIENT INFO - Always visible */}
-        <div className="bg-zinc-800 rounded-2xl shadow-sm border border-zinc-700 p-6 mb-6">
-          <h2 className="text-lg font-bold text-white flex items-center gap-2 mb-4">
+        <div className="bg-white rounded-2xl shadow-sm border border-[#e4e9e8] p-6 mb-6">
+          <h2 className="text-lg font-bold text-[#182d35] flex items-center gap-2 mb-4">
             {icons.user} Údaje o klientovi
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
-              <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Klient</label>
+              <label className="block text-xs font-bold text-[#71828a] uppercase mb-1">Klient</label>
               <input
                 value={clientInfo.name}
                 onChange={(e) => setClientInfo({ ...clientInfo, name: e.target.value })}
-                className="w-full p-2 bg-zinc-700 border border-zinc-600 rounded focus:ring-2 focus:ring-blue-500 outline-none text-white"
+                className="w-full p-2 bg-[#f1f5f3] border border-[#d6e0dc] rounded focus:ring-2 focus:ring-[#67c7b5] outline-none text-[#182d35]"
                 placeholder="Jméno klienta"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Vozidlo</label>
+              <label className="block text-xs font-bold text-[#71828a] uppercase mb-1">Vozidlo</label>
               <input
                 value={clientInfo.car}
                 onChange={(e) => setClientInfo({ ...clientInfo, car: e.target.value })}
-                className="w-full p-2 bg-zinc-700 border border-zinc-600 rounded focus:ring-2 focus:ring-blue-500 outline-none text-white"
+                className="w-full p-2 bg-[#f1f5f3] border border-[#d6e0dc] rounded focus:ring-2 focus:ring-[#67c7b5] outline-none text-[#182d35]"
                 placeholder="Značka a model"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Pojistná částka</label>
+              <label className="block text-xs font-bold text-[#71828a] uppercase mb-1">Pojistná částka</label>
               <input
                 type="number"
                 value={clientInfo.carValue}
                 onChange={(e) => setClientInfo({ ...clientInfo, carValue: e.target.value })}
-                className="w-full p-2 bg-zinc-700 border border-zinc-600 rounded focus:ring-2 focus:ring-blue-500 outline-none text-white"
+                className="w-full p-2 bg-[#f1f5f3] border border-[#d6e0dc] rounded focus:ring-2 focus:ring-[#67c7b5] outline-none text-[#182d35]"
                 placeholder="Kč"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Rok výroby</label>
+              <label className="block text-xs font-bold text-[#71828a] uppercase mb-1">Rok výroby</label>
               <input
                 type="number"
                 value={clientInfo.yearOfManufacture}
                 onChange={(e) => setClientInfo({ ...clientInfo, yearOfManufacture: e.target.value })}
-                className="w-full p-2 bg-zinc-700 border border-zinc-600 rounded focus:ring-2 focus:ring-blue-500 outline-none text-white"
+                className="w-full p-2 bg-[#f1f5f3] border border-[#d6e0dc] rounded focus:ring-2 focus:ring-[#67c7b5] outline-none text-[#182d35]"
                 placeholder="2024"
               />
             </div>
@@ -443,8 +398,8 @@ export default function PruzkumPage() {
         {phase === "setup" && (
           <div className="space-y-6">
             {/* Insurers Selection */}
-            <div className="bg-zinc-800 rounded-2xl shadow-sm border border-zinc-700 p-6">
-              <h2 className="text-lg font-bold text-white mb-4">Výběr pojišťoven (sloupce)</h2>
+            <div className="bg-white rounded-2xl shadow-sm border border-[#e4e9e8] p-6">
+              <h2 className="text-lg font-bold text-[#182d35] mb-4">Výběr pojišťoven (sloupce)</h2>
               <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                 {INSURERS.map((insurer) => (
                   <button
@@ -452,8 +407,8 @@ export default function PruzkumPage() {
                     onClick={() => toggleInsurer(insurer.id)}
                     className={`p-3 rounded-lg border-2 transition-all text-left ${
                       selectedInsurers.includes(insurer.id)
-                        ? "border-[#009ee3] bg-[#009ee3]/10 text-white"
-                        : "border-zinc-600 bg-zinc-700/50 text-gray-400 hover:border-zinc-500"
+                        ? "border-[#147d70] bg-[#e7f3ee] text-[#182d35]"
+                        : "border-[#d6e0dc] bg-[#f1f5f3] text-[#71828a] hover:border-[#b8cac2]"
                     }`}
                   >
                     <div className="font-bold text-sm">{insurer.shortName}</div>
@@ -464,14 +419,14 @@ export default function PruzkumPage() {
               <div className="mt-4 flex gap-2">
                 <button
                   onClick={() => setSelectedInsurers(INSURERS.map(i => i.id))}
-                  className="text-sm text-[#009ee3] hover:underline"
+                  className="text-sm text-[#147d70] hover:underline"
                 >
                   Vybrat vše
                 </button>
-                <span className="text-gray-500">|</span>
+                <span className="text-[#71828a]">|</span>
                 <button
                   onClick={() => setSelectedInsurers([])}
-                  className="text-sm text-gray-400 hover:underline"
+                  className="text-sm text-[#71828a] hover:underline"
                 >
                   Zrušit výběr
                 </button>
@@ -479,12 +434,12 @@ export default function PruzkumPage() {
             </div>
 
             {/* Row Types Selection */}
-            <div className="bg-zinc-800 rounded-2xl shadow-sm border border-zinc-700 p-6">
-              <h2 className="text-lg font-bold text-white mb-4">Výběr typů pojištění (řádky)</h2>
+            <div className="bg-white rounded-2xl shadow-sm border border-[#e4e9e8] p-6">
+              <h2 className="text-lg font-bold text-[#182d35] mb-4">Výběr typů pojištění (řádky)</h2>
               
               {/* Core types */}
               <div className="mb-4">
-                <h3 className="text-sm font-bold text-gray-400 uppercase mb-2">Základní pojištění</h3>
+                <h3 className="text-sm font-bold text-[#71828a] uppercase mb-2">Základní pojištění</h3>
                 <div className="flex flex-wrap gap-2">
                   {CORE_INSURANCE_TYPES.map((type) => (
                     <button
@@ -492,8 +447,8 @@ export default function PruzkumPage() {
                       onClick={() => toggleRow(type.id)}
                       className={`px-4 py-2 rounded-lg border transition-all ${
                         selectedRows.includes(type.id)
-                          ? "border-emerald-500 bg-emerald-500/10 text-emerald-400"
-                          : "border-zinc-600 bg-zinc-700/50 text-gray-400 hover:border-zinc-500"
+                          ? "border-[#147d70] bg-[#e7f3ee] text-[#147d70]"
+                          : "border-[#d6e0dc] bg-[#f1f5f3] text-[#71828a] hover:border-[#b8cac2]"
                       }`}
                     >
                       {selectedRows.includes(type.id) && <span className="mr-2">✓</span>}
@@ -505,7 +460,7 @@ export default function PruzkumPage() {
 
               {/* Module types */}
               <div>
-                <h3 className="text-sm font-bold text-gray-400 uppercase mb-2">Připojištění</h3>
+                <h3 className="text-sm font-bold text-[#71828a] uppercase mb-2">Připojištění</h3>
                 <div className="flex flex-wrap gap-2">
                   {DEFAULT_MODULES.map((mod) => (
                     <button
@@ -513,8 +468,8 @@ export default function PruzkumPage() {
                       onClick={() => toggleRow(mod.id)}
                       className={`px-4 py-2 rounded-lg border transition-all ${
                         selectedRows.includes(mod.id)
-                          ? "border-blue-500 bg-blue-500/10 text-blue-400"
-                          : "border-zinc-600 bg-zinc-700/50 text-gray-400 hover:border-zinc-500"
+                          ? "border-[#147d70] bg-[#e7f3ee] text-[#147d70]"
+                          : "border-[#d6e0dc] bg-[#f1f5f3] text-[#71828a] hover:border-[#b8cac2]"
                       }`}
                     >
                       {selectedRows.includes(mod.id) && <span className="mr-2">✓</span>}
@@ -526,11 +481,11 @@ export default function PruzkumPage() {
             </div>
 
             {/* Summary */}
-            <div className="bg-zinc-800/50 rounded-lg p-4 border border-zinc-700">
-              <div className="text-sm text-gray-400">
-                Vybrané pojišťovny: <span className="text-white font-bold">{selectedInsurers.length}</span> | 
-                Vybrané řádky: <span className="text-white font-bold">{selectedRows.length}</span> | 
-                Tabulka: <span className="text-white font-bold">{selectedRows.length} × {selectedInsurers.length}</span> buněk
+            <div className="bg-[#f5f7f6] rounded-lg p-4 border border-[#e4e9e8]">
+              <div className="text-sm text-[#71828a]">
+                Vybrané pojišťovny: <span className="text-[#182d35] font-bold">{selectedInsurers.length}</span> |
+                Vybrané řádky: <span className="text-[#182d35] font-bold">{selectedRows.length}</span> |
+                Tabulka: <span className="text-[#182d35] font-bold">{selectedRows.length} × {selectedInsurers.length}</span> buněk
               </div>
             </div>
           </div>
@@ -538,16 +493,16 @@ export default function PruzkumPage() {
 
         {/* PHASE: ENTRY */}
         {phase === "entry" && (
-          <div className="bg-zinc-800 rounded-2xl shadow-sm border border-zinc-700 overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-sm border border-[#e4e9e8] overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full border-collapse">
                 <thead>
-                  <tr className="bg-zinc-900">
-                    <th className="p-3 text-left text-sm font-bold text-gray-400 border-b border-zinc-700 sticky left-0 bg-zinc-900 z-10 min-w-[150px]">
+                  <tr className="bg-[#f5f7f6]">
+                    <th className="p-3 text-left text-sm font-bold text-[#71828a] border-b border-[#e4e9e8] sticky left-0 bg-[#f5f7f6] z-10 min-w-[150px]">
                       Typ pojištění
                     </th>
                     {selectedInsurers.map((insurerId) => (
-                      <th key={insurerId} className="p-3 text-center text-sm font-bold text-white border-b border-zinc-700 min-w-[120px]">
+                      <th key={insurerId} className="p-3 text-center text-sm font-bold text-[#182d35] border-b border-[#e4e9e8] min-w-[120px]">
                         {getInsurerName(insurerId, true)}
                       </th>
                     ))}
@@ -558,17 +513,17 @@ export default function PruzkumPage() {
                     const rowType = ALL_ROW_TYPES.find(r => r.id === rowId);
                     const isCore = rowType?.category !== "module";
                     return (
-                      <tr key={rowId} className={rowIdx % 2 === 0 ? "bg-zinc-800" : "bg-zinc-800/50"}>
-                        <td className={`p-3 text-sm font-medium border-b border-zinc-700 sticky left-0 z-10 ${rowIdx % 2 === 0 ? "bg-zinc-800" : "bg-zinc-800/50"} ${isCore ? "text-emerald-400" : "text-blue-400"}`}>
+                      <tr key={rowId} className={rowIdx % 2 === 0 ? "bg-white" : "bg-[#f5f7f6]"}>
+                        <td className={`p-3 text-sm font-medium border-b border-[#e4e9e8] sticky left-0 z-10 ${rowIdx % 2 === 0 ? "bg-white" : "bg-[#f5f7f6]"} ${isCore ? "text-[#147d70]" : "text-[#147d70]"}`}>
                           {rowType?.name || rowId}
                         </td>
                         {selectedInsurers.map((insurerId) => (
-                          <td key={insurerId} className="p-2 border-b border-zinc-700 text-center">
+                          <td key={insurerId} className="p-2 border-b border-[#e4e9e8] text-center">
                             <input
                               type="number"
                               value={cells[rowId]?.[insurerId]?.price || ""}
                               onChange={(e) => updateCell(rowId, insurerId, e.target.value ? parseInt(e.target.value) : null)}
-                              className="w-full p-2 bg-zinc-700 border border-zinc-600 rounded text-white text-center text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                              className="w-full p-2 bg-[#f1f5f3] border border-[#d6e0dc] rounded text-[#182d35] text-center text-sm focus:ring-2 focus:ring-[#67c7b5] outline-none"
                               placeholder="-"
                             />
                           </td>
@@ -577,14 +532,14 @@ export default function PruzkumPage() {
                     );
                   })}
                   {/* Total row */}
-                  <tr className="bg-zinc-900 font-bold">
-                    <td className="p-3 text-sm text-white border-t-2 border-zinc-600 sticky left-0 bg-zinc-900 z-10">
+                  <tr className="bg-[#f5f7f6] font-bold">
+                    <td className="p-3 text-sm text-[#182d35] border-t-2 border-[#d6e0dc] sticky left-0 bg-[#f5f7f6] z-10">
                       CELKEM
                     </td>
                     {selectedInsurers.map((insurerId) => {
                       const total = calculateColumnTotal(insurerId);
                       return (
-                        <td key={insurerId} className="p-3 text-center text-lg text-[#009ee3] border-t-2 border-zinc-600">
+                        <td key={insurerId} className="p-3 text-center text-lg text-[#147d70] border-t-2 border-[#d6e0dc]">
                           {formatCurrency(total || null)}
                         </td>
                       );
@@ -598,30 +553,30 @@ export default function PruzkumPage() {
 
         {/* PHASE: SELECT */}
         {phase === "select" && (
-          <div className="bg-zinc-800 rounded-2xl shadow-sm border border-zinc-700 overflow-hidden">
-            <div className="p-4 border-b border-zinc-700 bg-zinc-900/50">
-              <h2 className="text-lg font-bold text-white">Vyberte varianty pro export do nabídky</h2>
-              <p className="text-sm text-gray-400">Zaškrtněte pojišťovny, které chcete přenést do modulu Kalkulace</p>
+          <div className="bg-white rounded-2xl shadow-sm border border-[#e4e9e8] overflow-hidden">
+            <div className="p-4 border-b border-[#e4e9e8] bg-[#f5f7f6]">
+              <h2 className="text-lg font-bold text-[#182d35]">Vyberte varianty pro export do nabídky</h2>
+              <p className="text-sm text-[#71828a]">Zaškrtněte pojišťovny, které chcete přenést do modulu Kalkulace</p>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full border-collapse">
                 <thead>
-                  <tr className="bg-zinc-900">
-                    <th className="p-3 text-left text-sm font-bold text-gray-400 border-b border-zinc-700 sticky left-0 bg-zinc-900 z-10 min-w-[150px]">
+                  <tr className="bg-[#f5f7f6]">
+                    <th className="p-3 text-left text-sm font-bold text-[#71828a] border-b border-[#e4e9e8] sticky left-0 bg-[#f5f7f6] z-10 min-w-[150px]">
                       Typ pojištění
                     </th>
                     {selectedInsurers.map((insurerId) => (
-                      <th key={insurerId} className="p-3 text-center border-b border-zinc-700 min-w-[120px]">
+                      <th key={insurerId} className="p-3 text-center border-b border-[#e4e9e8] min-w-[120px]">
                         <div className="flex flex-col items-center gap-2">
-                          <span className={`text-sm font-bold ${selectedForExport.includes(insurerId) ? "text-[#009ee3]" : "text-white"}`}>
+                          <span className={`text-sm font-bold ${selectedForExport.includes(insurerId) ? "text-[#147d70]" : "text-[#182d35]"}`}>
                             {getInsurerName(insurerId, true)}
                           </span>
                           <button
                             onClick={() => toggleExportSelection(insurerId)}
                             className={`w-8 h-8 rounded-lg border-2 flex items-center justify-center transition-all ${
                               selectedForExport.includes(insurerId)
-                                ? "border-[#009ee3] bg-[#009ee3] text-white"
-                                : "border-zinc-600 bg-zinc-700 text-gray-400 hover:border-zinc-500"
+                                ? "border-[#147d70] bg-[#147d70] text-white"
+                                : "border-[#d6e0dc] bg-[#f1f5f3] text-[#71828a] hover:border-[#b8cac2]"
                             }`}
                           >
                             {selectedForExport.includes(insurerId) && icons.check}
@@ -636,16 +591,16 @@ export default function PruzkumPage() {
                     const rowType = ALL_ROW_TYPES.find(r => r.id === rowId);
                     const isCore = rowType?.category !== "module";
                     return (
-                      <tr key={rowId} className={rowIdx % 2 === 0 ? "bg-zinc-800" : "bg-zinc-800/50"}>
-                        <td className={`p-3 text-sm font-medium border-b border-zinc-700 sticky left-0 z-10 ${rowIdx % 2 === 0 ? "bg-zinc-800" : "bg-zinc-800/50"} ${isCore ? "text-emerald-400" : "text-blue-400"}`}>
+                      <tr key={rowId} className={rowIdx % 2 === 0 ? "bg-white" : "bg-[#f5f7f6]"}>
+                        <td className={`p-3 text-sm font-medium border-b border-[#e4e9e8] sticky left-0 z-10 ${rowIdx % 2 === 0 ? "bg-white" : "bg-[#f5f7f6]"} ${isCore ? "text-[#147d70]" : "text-[#147d70]"}`}>
                           {rowType?.name || rowId}
                         </td>
                         {selectedInsurers.map((insurerId) => {
                           const price = cells[rowId]?.[insurerId]?.price;
                           const isSelected = selectedForExport.includes(insurerId);
                           return (
-                            <td key={insurerId} className={`p-3 border-b border-zinc-700 text-center text-sm ${isSelected ? "bg-[#009ee3]/5" : ""}`}>
-                              <span className={price ? "text-white font-medium" : "text-gray-500"}>
+                            <td key={insurerId} className={`p-3 border-b border-[#e4e9e8] text-center text-sm ${isSelected ? "bg-[#f1f7f4]" : ""}`}>
+                              <span className={price ? "text-[#182d35] font-medium" : "text-[#71828a]"}>
                                 {formatCurrency(price)}
                               </span>
                             </td>
@@ -655,15 +610,15 @@ export default function PruzkumPage() {
                     );
                   })}
                   {/* Total row */}
-                  <tr className="bg-zinc-900 font-bold">
-                    <td className="p-3 text-sm text-white border-t-2 border-zinc-600 sticky left-0 bg-zinc-900 z-10">
+                  <tr className="bg-[#f5f7f6] font-bold">
+                    <td className="p-3 text-sm text-[#182d35] border-t-2 border-[#d6e0dc] sticky left-0 bg-[#f5f7f6] z-10">
                       CELKEM
                     </td>
                     {selectedInsurers.map((insurerId) => {
                       const total = calculateColumnTotal(insurerId);
                       const isSelected = selectedForExport.includes(insurerId);
                       return (
-                        <td key={insurerId} className={`p-3 text-center text-lg border-t-2 border-zinc-600 ${isSelected ? "text-[#009ee3] bg-[#009ee3]/10" : "text-gray-400"}`}>
+                        <td key={insurerId} className={`p-3 text-center text-lg border-t-2 border-[#d6e0dc] ${isSelected ? "text-[#147d70] bg-[#e7f3ee]" : "text-[#71828a]"}`}>
                           {formatCurrency(total || null)}
                         </td>
                       );
@@ -672,9 +627,9 @@ export default function PruzkumPage() {
                 </tbody>
               </table>
             </div>
-            <div className="p-4 border-t border-zinc-700 bg-zinc-900/50">
-              <div className="text-sm text-gray-400">
-                Vybrané pro export: <span className="text-[#009ee3] font-bold">{selectedForExport.length}</span> pojišťoven
+            <div className="p-4 border-t border-[#e4e9e8] bg-[#f5f7f6]">
+              <div className="text-sm text-[#71828a]">
+                Vybrané pro export: <span className="text-[#147d70] font-bold">{selectedForExport.length}</span> pojišťoven
               </div>
             </div>
           </div>
@@ -684,24 +639,24 @@ export default function PruzkumPage() {
         {phase === "export" && (
           <div className="space-y-6">
             {/* Summary */}
-            <div className="bg-zinc-800 rounded-2xl shadow-sm border border-zinc-700 p-6">
-              <h2 className="text-lg font-bold text-white mb-4">Shrnutí exportu</h2>
+            <div className="bg-white rounded-2xl shadow-sm border border-[#e4e9e8] p-6">
+              <h2 className="text-lg font-bold text-[#182d35] mb-4">Shrnutí exportu</h2>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Client info */}
-                <div className="bg-zinc-900/50 rounded-lg p-4">
-                  <h3 className="text-sm font-bold text-gray-400 uppercase mb-2">Klient</h3>
-                  <div className="text-white font-bold">{clientInfo.name || "-"}</div>
-                  <div className="text-gray-400">{clientInfo.car || "-"}</div>
-                  <div className="text-[#009ee3] font-bold">{formatCurrency(parseInt(clientInfo.carValue) || null)}</div>
+                <div className="bg-[#f5f7f6] rounded-lg p-4">
+                  <h3 className="text-sm font-bold text-[#71828a] uppercase mb-2">Klient</h3>
+                  <div className="text-[#182d35] font-bold">{clientInfo.name || "-"}</div>
+                  <div className="text-[#71828a]">{clientInfo.car || "-"}</div>
+                  <div className="text-[#147d70] font-bold">{formatCurrency(parseInt(clientInfo.carValue) || null)}</div>
                 </div>
 
                 {/* Selected insurers */}
-                <div className="bg-zinc-900/50 rounded-lg p-4">
-                  <h3 className="text-sm font-bold text-gray-400 uppercase mb-2">Vybrané pojišťovny ({selectedForExport.length})</h3>
+                <div className="bg-[#f5f7f6] rounded-lg p-4">
+                  <h3 className="text-sm font-bold text-[#71828a] uppercase mb-2">Vybrané pojišťovny ({selectedForExport.length})</h3>
                   <div className="flex flex-wrap gap-2">
                     {selectedForExport.map((insurerId, idx) => (
-                      <div key={insurerId} className="bg-[#009ee3]/20 text-[#009ee3] px-3 py-1 rounded-full text-sm font-medium">
+                      <div key={insurerId} className="bg-[#e7f3ee] text-[#147d70] px-3 py-1 rounded-full text-sm font-medium">
                         Varianta {String.fromCharCode(65 + idx)}: {getInsurerName(insurerId, true)}
                       </div>
                     ))}
@@ -711,24 +666,24 @@ export default function PruzkumPage() {
 
               {/* Preview of what will be exported */}
               <div className="mt-6">
-                <h3 className="text-sm font-bold text-gray-400 uppercase mb-4">Náhled variant</h3>
+                <h3 className="text-sm font-bold text-[#71828a] uppercase mb-4">Náhled variant</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   {selectedForExport.map((insurerId, idx) => {
                     const total = calculateColumnTotal(insurerId);
                     return (
-                      <div key={insurerId} className="bg-zinc-900 rounded-xl p-4 border border-zinc-700">
-                        <div className="text-xs text-[#009ee3] font-bold uppercase mb-1">Varianta {String.fromCharCode(65 + idx)}</div>
-                        <div className="text-white font-bold mb-2">{getInsurerName(insurerId, true)}</div>
-                        <div className="text-2xl font-bold text-[#009ee3] mb-3">{formatCurrency(total)}</div>
+                      <div key={insurerId} className="bg-[#f5f7f6] rounded-xl p-4 border border-[#e4e9e8]">
+                        <div className="text-xs text-[#147d70] font-bold uppercase mb-1">Varianta {String.fromCharCode(65 + idx)}</div>
+                        <div className="text-[#182d35] font-bold mb-2">{getInsurerName(insurerId, true)}</div>
+                        <div className="text-2xl font-bold text-[#147d70] mb-3">{formatCurrency(total)}</div>
                         <div className="space-y-1 text-xs">
                           {selectedRows.map(rowId => {
                             const price = cells[rowId]?.[insurerId]?.price;
                             if (!price) return null;
                             const rowType = ALL_ROW_TYPES.find(r => r.id === rowId);
                             return (
-                              <div key={rowId} className="flex justify-between text-gray-400">
+                              <div key={rowId} className="flex justify-between text-[#71828a]">
                                 <span>{rowType?.name}</span>
-                                <span className="text-white">{formatCurrency(price)}</span>
+                                <span className="text-[#182d35]">{formatCurrency(price)}</span>
                               </div>
                             );
                           })}
@@ -744,13 +699,13 @@ export default function PruzkumPage() {
             <div className="text-center">
               <button
                 onClick={exportToKalkulace}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-xl font-bold text-lg shadow-lg transition-all flex items-center gap-3 mx-auto"
+                className="bg-[#147d70] hover:bg-[#106451] text-white px-8 py-4 rounded-xl font-bold text-lg shadow-sm transition-all flex items-center gap-3 mx-auto"
               >
                 {icons.send}
                 Přenést do Kalkulace
                 {icons.arrowRight}
               </button>
-              <p className="text-gray-400 text-sm mt-2">
+              <p className="text-[#71828a] text-sm mt-2">
                 Data budou přenesena do modulu Kalkulace pro vytvoření nabídky
               </p>
             </div>
@@ -764,8 +719,8 @@ export default function PruzkumPage() {
             disabled={currentPhaseIndex === 0}
             className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${
               currentPhaseIndex === 0
-                ? "bg-zinc-700/50 text-gray-500 cursor-not-allowed"
-                : "bg-zinc-700 text-white hover:bg-zinc-600"
+                ? "bg-[#f1f5f3] text-[#71828a] cursor-not-allowed"
+                : "bg-[#f1f5f3] text-[#182d35] hover:bg-[#e4e9e8]"
             }`}
           >
             {icons.arrowLeft} Zpět
@@ -777,8 +732,8 @@ export default function PruzkumPage() {
               disabled={!canProceed}
               className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${
                 !canProceed
-                  ? "bg-zinc-700/50 text-gray-500 cursor-not-allowed"
-                  : "bg-[#009ee3] text-white hover:bg-blue-500"
+                  ? "bg-[#f1f5f3] text-[#71828a] cursor-not-allowed"
+                  : "bg-[#147d70] text-white hover:bg-[#147d70]"
               }`}
             >
               Pokračovat {icons.arrowRight}
@@ -786,6 +741,6 @@ export default function PruzkumPage() {
           )}
         </div>
       </main>
-    </div>
+    </ModuleShell>
   );
 }

@@ -7,25 +7,19 @@ export interface User {
   role: UserRole;
 }
 
-// Hardcoded users (password is same for all: Kotrmelec99)
+// Shared roster. Credentials and signed sessions are verified only on the server.
 const USERS: Record<string, User> = {
   MILAN: { username: "MILAN", displayName: "Milan", role: "OWNER" },
   MILOS: { username: "MILOS", displayName: "Miloš", role: "EMPLOYEE" },
   KARINA: { username: "KARINA", displayName: "Karina", role: "EMPLOYEE" },
   KATERINA: { username: "KATERINA", displayName: "Kateřina", role: "EMPLOYEE" },
   VENDULA: { username: "VENDULA", displayName: "Vendula", role: "EMPLOYEE" },
-  VIKTOR: { username: "VIKTOR", displayName: "Viktor", role: "EMPLOYEE" },
+  VIKTOR: { username: "VIKTOR", displayName: "Viktor", role: "OWNER" },
   NIKOLA: { username: "NIKOLA", displayName: "Nikola", role: "EMPLOYEE" },
+  LUKAS: { username: "LUKAS", displayName: "Lukáš", role: "EMPLOYEE" },
 };
 
-const PASSWORD = "Kotrmelec99";
 const SESSION_KEY = "firemni-ukoly:session";
-
-export function validateCredentials(username: string, password: string): User | null {
-  const normalizedUsername = username.toUpperCase();
-  if (password !== PASSWORD) return null;
-  return USERS[normalizedUsername] || null;
-}
 
 export function saveSession(user: User): void {
   if (typeof window !== "undefined") {
@@ -38,7 +32,9 @@ export function loadSession(): User | null {
   try {
     const raw = localStorage.getItem(SESSION_KEY);
     if (!raw) return null;
-    return JSON.parse(raw) as User;
+    const saved = JSON.parse(raw) as User;
+    // Resolve current role from the roster, including existing Viktor sessions.
+    return USERS[saved.username] ?? null;
   } catch {
     return null;
   }
@@ -47,6 +43,7 @@ export function loadSession(): User | null {
 export function clearSession(): void {
   if (typeof window !== "undefined") {
     localStorage.removeItem(SESSION_KEY);
+    void fetch("/api/session", { method: "DELETE", keepalive: true });
   }
 }
 

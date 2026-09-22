@@ -1,8 +1,14 @@
 @import "tailwindcss";
 
 :root {
-  --background: #090e1a;
-  --foreground: #f8fafc;
+  --background: #f5f7f6;
+  --foreground: #182d35;
+  --workspace-bg: #f5f7f6;
+  --workspace-ink: #182d35;
+  --workspace-muted: #71828a;
+  --workspace-accent: #147d70;
+  --workspace-line: #e4e9e8;
+  --workspace-sidebar: #102e32;
   --limmit-ink: #0d1730;
   --limmit-teal: #0f8f8a;
   --limmit-cyan: #009ee3;
@@ -33,4 +39,32 @@ textarea {
 
 ::selection {
   background: rgba(0, 158, 227, 0.28);
+}
+
+.app-navigation{height:64px;position:sticky;top:0;z-index:20;background:#102e32;border-bottom:1px solid #ffffff13;color:#adcbc3;padding-top:env(safe-area-inset-top)}
+.app-navigation-inner{max-width:1600px;margin:auto;padding:0 24px;height:100%}
+.app-navigation-items{height:100%;display:flex;align-items:center;justify-content:center;gap:12px}
+.app-navigation-link{display:flex;align-items:center;gap:9px;padding:10px 24px;border-radius:8px;font-size:12px;font-weight:600;min-height:42px;transition:background .2s}
+.app-navigation-link:hover{background:#ffffff0a;color:white}
+.app-navigation-active{background:#24504d;color:#ebfff4}
+.login-screen{min-height:100dvh;background:#f5f7f6;display:grid;place-items:center;padding:30px;color:#183d30}
+.login-card{background:white;border:1px solid #e0e9e1;border-radius:20px;padding:40px;width:100%;max-width:440px;box-shadow:0 25px 80px #16422c0b}
+.login-card h1{color:#183d30;font-size:30px;letter-spacing:-1px}.login-card p,.login-card label{color:#80947f}.login-card input{background:#f5f8f3;color:#23492f;border:1px solid #dfe8d9;font-size:16px}.login-card button{background:#187d6d}.login-card button:hover{background:#106451}
+@media(max-width:760px){.app-navigation{position:fixed;top:auto;bottom:0;left:0;right:0;height:auto;padding:6px 6px calc(6px + env(safe-area-inset-bottom));background:#102e32f5;backdrop-filter:blur(12px);border-top:1px solid #ffffff15;z-index:30}.app-navigation-inner{padding:0}.app-navigation-items{justify-content:space-around;gap:0}.app-navigation-link{flex-direction:column;gap:5px;font-size:10px;min-width:65px;padding:7px 12px;min-height:49px}.login-card{padding:30px 25px}}
+
+/* Shared controls for the insurance workspaces. */
+.module-content { min-width: 0; }
+.module-action { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 15px; min-height: 42px; border: 1px solid var(--workspace-line); border-radius: 9px; color: #526c65; background: white; font-size: 12px; font-weight: 600; cursor: pointer; }
+.module-action:hover { background: #edf4f1; }
+.module-action-primary { background: var(--workspace-accent); border-color: var(--workspace-accent); color: white; }
+.module-action-primary:hover { background: #106451; }
+.module-content :is(input, select, textarea) { accent-color: var(--workspace-accent); }
+.module-content :is(input:not([type="checkbox"]), select, textarea) { border-radius: 8px; }
+.module-content button { cursor: pointer; }
+.module-content button:disabled { cursor: not-allowed; }
+.module-notice { max-width: calc(100vw - 32px); }
+@media(max-width:760px) {
+  .app-navigation-link { flex: 1; min-width: 0; padding: 7px 3px; font-size: 9px; }
+  .app-navigation-link span { white-space: nowrap; }
+  .module-content > .fixed { padding: 16px; }
 }

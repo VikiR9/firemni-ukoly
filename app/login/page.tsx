@@ -1,7 +1,8 @@
 "use client";
+import { LimmitLogo } from "@/lib/logo";
 import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { validateCredentials, saveSession } from "@/lib/auth";
+import { saveSession } from "@/lib/auth";
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");
@@ -15,61 +16,50 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
 
-    const user = validateCredentials(username, password);
-    if (!user) {
-      setError("Neplatné přihlašovací údaje");
+    let user;
+    try {
+      const response = await fetch("/api/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error);
+      user = result.user;
+      if (result.must_change_password) {
+        saveSession(user);
+        router.replace("/zmena-hesla");
+        router.refresh();
+        return;
+      }
+    } catch (error) {
+      setError(
+        error instanceof Error ? error.message : "Přihlášení se nezdařilo.",
+      );
       setLoading(false);
       return;
     }
 
     saveSession(user);
-    
-    // Request notification permission and set OneSignal user ID
-    try {
-      // Request native browser permission
-      if (typeof Notification !== 'undefined') {
-        const permission = await Notification.requestPermission();
-        console.log('Notification permission:', permission);
-      }
-      
-      // Set OneSignal external user ID (after initialization completes)
-      if (typeof window !== 'undefined' && (window as any).OneSignalDeferred) {
-        (window as any).OneSignalDeferred.push(async function(OneSignal: any) {
-          try {
-            // Wait for OneSignal to be fully initialized
-            await OneSignal.User.PushSubscription.optIn();
-            await OneSignal.login(user.displayName);
-            console.log('OneSignal user ID set:', user.displayName);
-          } catch (err) {
-            console.warn('OneSignal login error:', err);
-          }
-        });
-      }
-    } catch (e) {
-      console.warn("Notification setup failed:", e);
-    }
 
-    router.push("/");
+    const next = new URLSearchParams(window.location.search).get("next");
+    const taskLink = /^\/\?task=[0-9a-f-]{36}$/i.test(next ?? "") || next === "/?filter=overdue";
+    router.push(taskLink || ["/dochazka", "/absence", "/ucet", "/kalkulace", "/majetek", "/pruzkum"].includes(next ?? "") ? next! : "/");
     router.refresh();
   };
 
-
-
   return (
-    <div className="min-h-screen bg-zinc-900 flex items-center justify-center p-6">
-      <div className="bg-zinc-800 rounded-xl p-8 w-full max-w-md">
-        <h1 className="text-3xl font-bold text-white mb-6 text-center">
-          Firemní úkoly
-        </h1>
+    <div className="login-screen">
+      <div className="login-card">
+        <div className="flex justify-center mb-6"><LimmitLogo height={48} /></div>
+        <h1 className="text-center mb-3">Vítejte v týmu</h1>
         <p className="text-gray-400 text-sm text-center mb-8">
           Přihlaste se svým jménem
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm text-gray-300 mb-2">
-              Jméno
-            </label>
+            <label className="block text-sm text-gray-300 mb-2">Jméno</label>
             <input
               name="username"
               autoComplete="username"
@@ -83,9 +73,7 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label className="block text-sm text-gray-300 mb-2">
-              Heslo
-            </label>
+            <label className="block text-sm text-gray-300 mb-2">Heslo</label>
             <input
               name="password"
               autoComplete="current-password"
@@ -99,7 +87,7 @@ export default function LoginPage() {
           </div>
 
           {error && (
-            <div className="bg-red-600/20 border border-red-600 rounded-lg px-4 py-3 text-sm text-red-200">
+            <div className="bg-red-600/20 border border-red-600 rounded-lg px-4 py-3 text-sm text-red-800">
               {error}
             </div>
           )}
@@ -113,9 +101,9 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <div className="mt-8 pt-6 border-t border-zinc-700">
+        <div className="mt-8 pt-6 border-t border-[#e4e9e8]">
           <p className="text-xs text-gray-500 text-center">
-            Uživatelé: Milan (majitel), Miloš, Karina, Kateřina, Vendula, Viktor, Nikola
+            Milan a Viktor (majitelé), Miloš, Karina, Kateřina, Vendula, Nikola, Lukáš
           </p>
         </div>
       </div>

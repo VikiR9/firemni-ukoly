@@ -14,9 +14,12 @@
 /coverage
 /tmp/
 /output/
+/.playwright-cli/
+/supabase/.temp/
 
 # next.js
 /.next/
+/.next-verify/
 /out/
 
 # production
@@ -42,3 +45,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+.vercel
+.env*

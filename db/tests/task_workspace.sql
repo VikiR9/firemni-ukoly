@@ -1,0 +1,31 @@
+begin;
+set local role anon;
+do $$
+declare v_task_id uuid:=gen_random_uuid(); own_id uuid:=gen_random_uuid(); failed boolean:=false;
+begin
+ perform public.task_workspace('create','Viktor',v_task_id,'{"title":"Regression shared","description":"test","priority":"High","assignees":["Viktor","Karina"],"requires_approval":true}'::jsonb);
+ if (select count(*) from public.task_assignments where task_id=v_task_id)<>2 then raise exception 'assignment count';end if;
+ perform public.task_workspace('transition','Karina',v_task_id,'{"assignee":"Karina","status":"ACCEPTED","expected_status":"PENDING_ACCEPT"}');
+ perform public.task_workspace('transition','Karina',v_task_id,'{"assignee":"Karina","status":"SUBMITTED_DONE","expected_status":"ACCEPTED"}');
+ begin perform public.task_workspace('transition','Karina',v_task_id,'{"assignee":"Karina","status":"DONE","expected_status":"SUBMITTED_DONE"}'); exception when others then failed:=true;end;
+ if not failed then raise exception 'employee self review allowed';end if;
+ perform public.task_workspace('transition','Viktor',v_task_id,'{"assignee":"Karina","status":"RETURNED","expected_status":"SUBMITTED_DONE","note":"Doplnit podklady"}');
+ perform public.task_workspace('transition','Karina',v_task_id,'{"assignee":"Karina","status":"BLOCKED","expected_status":"RETURNED","note":"Čekám na klienta","reminder_on":"2026-09-10"}');
+ perform public.task_workspace('transition','Karina',v_task_id,'{"assignee":"Karina","status":"SUBMITTED_DONE","expected_status":"BLOCKED"}');
+ perform public.task_workspace('transition','Viktor',v_task_id,'{"assignee":"Karina","status":"DONE","expected_status":"SUBMITTED_DONE"}');
+ if (select status from public.task_assignments where task_id=v_task_id and assignee='Viktor')<>'ACCEPTED' then raise exception 'shared status overwritten';end if;
+ perform public.task_workspace('comment','Karina',v_task_id,'{"note":"Časová aktualizace"}');
+ if not exists(select 1 from public.task_updates where task_id=v_task_id and author='Karina' and body='Časová aktualizace' and created_at is not null) then raise exception 'missing comment';end if;
+ perform public.task_workspace('create','Karina',own_id,'{"title":"Regression own","priority":"Medium","assignees":["Karina"],"requires_approval":false}');
+ perform public.task_workspace('transition','Karina',own_id,'{"assignee":"Karina","status":"DONE","expected_status":"ACCEPTED"}');
+ if (select status from public.task_assignments where task_id=own_id)<>'DONE' then raise exception 'own task approval';end if;
+ perform public.task_workspace('archive','Karina',own_id);
+ perform public.task_workspace('restore','Karina',own_id);
+ if (select archived_at from public.tasks where id=own_id) is not null then raise exception 'restore failed';end if;
+ failed:=false;
+ begin perform public.task_workspace('transition','Karina',own_id,'{"assignee":"Karina","status":"PENDING_ACCEPT","expected_status":"ACCEPTED"}');exception when others then failed:=true;end;
+ if not failed then raise exception 'stale write permitted';end if;
+end;
+$$;
+select 'PASS: multi-assignee, optional approval, Viktor review, return, blocked reminder, timestamped comments, archive/restore, concurrent changes' as verification;
+rollback;

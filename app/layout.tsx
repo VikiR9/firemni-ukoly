@@ -1,8 +1,9 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import OneSignalInit from "./OneSignalInit";
 import AppNavigation from "./components/AppNavigation";
+import PwaInit from "./PwaInit";
+import SessionGate from "./components/SessionGate";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,6 +14,8 @@ const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
+
+export const viewport: Viewport = { width: 'device-width', initialScale: 1, viewportFit: 'cover', themeColor: '#102e32' };
 
 export const metadata: Metadata = {
   title: {
@@ -32,19 +35,19 @@ export default function RootLayout({
     <html lang="cs" className={`${geistSans.variable} ${geistMono.variable}`}>
       <head>
         <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#081827" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        {/* Icons (using existing SVGs in /public) */}
-        <link rel="icon" href="/window.svg" sizes="192x192" />
-        <link rel="icon" href="/file.svg" sizes="512x512" />
-        <link rel="apple-touch-icon" href="/window.svg" />
-        <link rel="mask-icon" href="/window.svg" color="#0f8f8a" />
+        {/* All app icons use the supplied LIMMIT asset. */}
+        <link rel="icon" href="/app-icon-192.png?v=2" sizes="192x192" />
+        <link rel="icon" href="/app-icon-512.png?v=2" sizes="512x512" />
+        <link rel="apple-touch-icon" href="/app-icon-192.png?v=2" />
       </head>
       <body className="antialiased">
-        <OneSignalInit />
-        <AppNavigation />
-        {children}
+        <PwaInit />
+        <SessionGate>
+          <AppNavigation />
+          {children}
+        </SessionGate>
       </body>
     </html>
   );

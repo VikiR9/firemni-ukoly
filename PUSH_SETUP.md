@@ -1,140 +1,57 @@
-# Setup Push Notifications - Instrukce
+# Upozornění LIMMIT
 
-## Krok 1: Vygenerujte VAPID klíče
+Aplikace používá vlastní standardní Web Push. OneSignal SDK se již nenačítá. Historická adresa `OneSignalSDKWorker.js` zůstává kvůli aktualizaci již nainstalovaných aplikací; načítá naše pracovníky pro PWA a upozornění.
 
-VAPID klíče jsou nutné pro Web Push API. Spusťte tento příkaz v PowerShellu ve složce projektu:
+## Pravidla doručování
 
-```powershell
-npx web-push generate-vapid-keys
+- Nové přidělení úkolu upozorní pouze přiděleného zpracovatele, na všech jeho zapnutých zařízeních.
+- Každý den v **8:30 a 14:30 Europe/Prague** přijde jeden souhrn vlastních úkolů po termínu. Letní a zimní čas se mění automaticky. Souhrn nepočítá hotové, odmítnuté, archivované úkoly ani úkoly bez termínu. Pokud není nic po termínu, nic se neposílá. Odevzdané, ale ještě neschválené úkoly zůstávají nedokončené.
+- Přechod zpracovatele do **Hotovo** upozorní ostatní zpracovatele téhož úkolu. Při zapnutém schvalování až po schválení. Dokončující člověk nedostane vlastní zprávu; zadavatel nebo majitel ji dostane pouze tehdy, je-li sám dalším zpracovatelem.
+- Přijetí úkolu upozorní původního autora úkolu, pokud není sám přijímajícím zpracovatelem.
+- Nové aktualizace/komentáře, úpravy zadání, změny stavu, archivace a obnovení upozorní autora a aktuální zpracovatele kromě původce změny. Nově přidaný zpracovatel dostane pouze zprávu o přidělení, bez druhé zprávy o téže úpravě. Přijetí a dokončení používají vlastní výše uvedená pravidla.
+- Běžné datum připomenutí v kategorii Dnes nevytváří další plánovaný push.
+
+## Osobní historie pod zvonečkem
+
+Zvoneček **Zprávy** ve společné navigaci zobrazuje počet nepřečtených a osobní historii za posledních 90 dní. Klepnutí označí zprávu jako přečtenou a otevře úkol; hromadné označení přečte zprávy do okamžiku načtení přehledu, takže nepřečte souběžně příchozí nové zprávy. Přehled načítá starší záznamy po stránkách.
+
+Historie se ukládá jednou pro každého příjemce bez ohledu na počet zařízení a funguje i bez povolených push oznámení. Stav přečtení je společný napříč zařízeními. Historie zaznamenává vznik upozornění, nikoli zaručené zobrazení na telefonu. Starší události se doplnily z dosud uchované doručovací fronty, takže období před jejím zavedením nebo již smazané záznamy nelze zpětně doplnit. Zkušební oznámení telefonu se do historie úkolů neukládají.
+
+Historie používá soukromou tabulku `push_private.notifications`, serverový endpoint `/api/notifications` a bránu `task_notification_history`. Relace určuje příjemce; klient neposílá identitu. Název a odkaz úkolu se vrátí jen tehdy, má-li k němu uživatel stále přístup. Souhrny po termínu mají historii také pro uživatele bez odběru push. Změna vyžaduje migraci `task_notification_history`; `db/tests/notification_history.sql` ověřuje příjemce, deduplikaci, přístup, stránkování a přečtení v transakci s rollbackem.
+
+Klepnutí otevře konkrétní úkol, souhrn otevře vlastní přidělené úkoly po termínu napříč projekty. Zamčená obrazovka neobsahuje název úkolu, popis ani klientská data; dokončení uvádí jméno kolegy.
+
+## Zapnutí zaměstnancem
+
+1. Otevřít stávající ikonu LIMMIT na ploše a přihlásit se.
+2. V přehledu nebo v **Můj účet → Upozornění** stisknout **Zapnout upozornění** a povolit oznámení.
+3. Stisknout **Poslat zkušební upozornění**, zavřít aplikaci a zamknout telefon. Zkouška se odešle až po 10 sekundách, obvykle během nejbližší minuty, nejpozději očekávána do dvou minut.
+
+Na iPhonu je potřeba iOS 16.4+ a spuštění z plochy. Android používá podporovaný prohlížeč, například aktuální Chrome. Aplikace nemusí běžet ani být otevřená. Vypnutý telefon, zakázaná oznámení, Soustředění nebo vynucené zastavení prohlížeče mohou doručení oddálit nebo zastavit. Povolení se váže ke konkrétnímu zařízení a účtu. Odhlášení či odvolání relace odběr vypne; opětovné přihlášení stejného účtu obnoví dříve výslovně zapnutý odběr při otevření přehledu nebo účtu.
+
+## Provozní nastavení
+
+Produkční migrace jsou ve `supabase/migrations`:
+
+- `20260921122809_native_web_push.sql`
+- `20260921125124_web_push_settings_filter.sql`
+- `20260921125252_assignee_push_digests.sql`
+- `20260922072043_task_notification_history.sql`
+
+Pro nové prostředí jednorázově spusťte `node scripts/setup-web-push.mjs keys`. Skript doplní chybějící klíče do ignorovaného `.env.local`, nevypisuje je a již existující pár zachová. Do produkčního Vercelu přeneste stejné čtyři `PUSH_*` proměnné z `.env.example`; soukromý klíč a tajemství pracovníka jsou pouze serverové. Nastaven musí být také stávající `ATTENDANCE_GATEWAY_SECRET` a Supabase připojení.
+
+Po aplikování migrací a nasazení aplikace aktivujte plánovač příkazem:
+
+```sh
+node scripts/setup-web-push.mjs configure https://firemni-ukoly.vercel.app
 ```
 
-Výstup bude vypadat nějak takto:
-```
-=======================================
+Supabase `pg_cron` spouští `push_private.tick()` každou minutu, `pg_net` volá chráněný produkční `/api/push/dispatch`. Fronta funguje nezávisle na prohlížeči uživatele. Souhrny mají 30minutové okno pro zotavení po krátkém výpadku. Unikátní klíč zařízení/datum/čas brání opakovaným souhrnům. Přechodné chyby se opakují s prodlevou (nejvýše 6 pokusů), neplatné odběry 404/410 se vypínají. Starší doručení se po 30 dnech promazávají. Zprávy mohou při výpadku přijít později; provozní čas není záruka přesného času zobrazení telefonem.
 
-Public Key:
-BEl62iUYgUivxIkv69yViEuiBIa-Ib27SX5fEd5SKEfTw...
+Tabulky jsou v soukromém schématu, s RLS a bez přímého přístupu klientů. Identita se ověřuje přes osobní serverovou relaci; prohlížeč neurčuje příjemce. Zkušební zprávu lze poslat pouze vlastnímu odběru, jednou za 30 sekund. Přijetí doručovací službou a potvrzené zobrazení na zařízení se evidují zvlášť.
 
-Private Key:
-UUxI4O8DdXfaIrNSHUvb5JT1n32ysjpI3...
+## Ověření
 
-=======================================
-```
+`node --test tests/web-push.test.mjs` ověřuje povolené služby, šifrovací klíče a pracovníka bez otevřené stránky. `db/tests/web_push.sql` spusťte pouze uvnitř `BEGIN` / `ROLLBACK`; ověřuje příjemce, dokončení, souhrny, oba časy, zimní čas, deduplikaci, autorizaci, frontu, opakování a odhlášení. Testy nesmějí zanechat testovací data nebo odesílat reálné zaměstnanecké zprávy.
 
-## Krok 2: Přidejte klíče do `.env.local`
-
-Otevřete soubor `.env.local` (nebo vytvořte nový v kořenové složce projektu) a přidejte:
-
-```env
-# Supabase (už byste měli mít)
-NEXT_PUBLIC_SUPAB ASE_URL=vaše_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=váš_anon_key
-
-# VAPID klíče pro push notifikace
-NEXT_PUBLIC_VAPID_PUBLIC_KEY=zde_vložte_PUBLIC_KEY_z_kroku_1
-VAPID_PRIVATE_KEY=zde_vložte_PRIVATE_KEY_z_kroku_1
-VAPID_SUBJECT=mailto:vas-email@example.com
-```
-
-⚠️ **Důležité:**
-- `NEXT_PUBLIC_VAPID_PUBLIC_KEY` musí začínat `NEXT_PUBLIC_` (je to public key, používá se v prohlížeči)
-- `VAPID_PRIVATE_KEY` je soukromý klíč (bez prefixu `NEXT_PUBLIC_`) — nikdy ho nesdílejte!
-- `VAPID_SUBJECT` je vaše kontaktní email nebo URL
-
-## Krok 3: Přidejte stejné proměnné do Vercel
-
-Pokud používáte Vercel pro deployment:
-
-1. Jděte na https://vercel.com/
-2. Otevřete svůj projekt `firemni-ukoly`
-3. Klikněte na **Settings** → **Environment Variables**
-4. Přidejte tyto proměnné (každou zvlášť):
-   - `NEXT_PUBLIC_VAPID_PUBLIC_KEY` = váš public key
-   - `VAPID_PRIVATE_KEY` = váš private key
-   - `VAPID_SUBJECT` = mailto:vas-email@example.com
-5. Vyberte **Production**, **Preview** a **Development** (všechny tři zaškrtnuté)
-6. Klikněte **Save**
-
-## Krok 4: Spusťte migraci v Supabase
-
-1. Jděte na https://supabase.com/ → váš projekt
-2. V levém menu klikněte na **SQL Editor**
-3. Otevřete soubor `db/migrations/0003_create_push_subscriptions.sql` z vašeho projektu
-4. Zkopírujte celý SQL kód a vložte do SQL Editoru v Supabase
-5. Klikněte **Run** (nebo `Ctrl+Enter`)
-
-Tím vytvoříte tabulku `push_subscriptions` kde se ukládají push subscription endpointy uživatelů.
-
-## Krok 5: Přidejte ikony do `/public`
-
-Vytvořte jednoduché ikony (nebo použijte nějaký generátor):
-
-- `public/icon-192.png` (192×192 px)
-- `public/icon-512.png` (512×512 px)
-- `public/badge-72.png` (72×72 px)
-
-Můžete použít například https://www.favicon-generator.org/ nebo vytvořit jednoduché barevné čtverce v Paint/Photoshopu.
-
-## Krok 6: Redeploy na Vercel
-
-Po přidání env proměnných do Vercelu:
-
-```powershell
-git add -A
-git commit -m "feat: complete web push implementation"
-git push origin main
-```
-
-Vercel automaticky provede nový build s novými proměnnými prostředí.
-
-## Krok 7: Testování
-
-### Na desktopu (Chrome, Edge, Firefox):
-1. Otevřete aplikaci
-2. Přihlaste se
-3. Prohlížeč se automaticky zeptá na povolení notifikací → **Povolit**
-4. Service worker se zaregistruje
-5. Vytvořte nový úkol pro přihlášeného uživatele
-6. Měla by přijít notifikace i když zavřete aplikaci (pokud je otevřena v jiné záložce nebo zavřená)
-
-### Na iPhone / iOS (Safari):
-1. Otevřete `https://firemni-ukoly.vercel.app` v Safari
-2. Klikněte na tlačítko **Sdílet** (ikona se šipkou)
-3. Vyberte **Přidat na plochu** ("Add to Home Screen")
-4. Otevřete aplikaci z plochy (ne z Safari!)
-5. Přihlaste se
-6. Safari se zeptá na povolení notifikací → **Povolit**
-7. Nyní budete dostávat push notifikace i když je aplikace zavřená
-
-⚠️ **Poznámka k iOS:**
-- Push notifikace na iOS fungují **POUZE** pokud je aplikace nainstalována na plochu (PWA)
-- V běžném Safari prohlížeči notifikace nefungují
-- iOS vyžaduje HTTPS (Vercel to má automaticky)
-
-## Troubleshooting
-
-### "Service Worker failed to register"
-- Ujistěte se, že aplikace běží na HTTPS (lokálně `localhost` je OK, jinak nutný HTTPS)
-- Zkontrolujte konzoli v DevTools
-
-### "VAPID public key not set in environment"
-- Zkontrolujte že `.env.local` obsahuje `NEXT_PUBLIC_VAPID_PUBLIC_KEY`
-- Restartujte dev server (`npm run dev`)
-- Na Vercelu zkontrolujte že env variable je nastavená a re-deployujte
-
-### Notifikace nepřichází
-1. Zkontrolujte že tabulka `push_subscriptions` existuje v Supabase
-2. Ověřte že řádek pro uživatele je v tabulce (po přihlášení se uloží subscription)
-3. Zkontrolujte konzoli Vercelu (logs) jestli API endpoint `/api/push/send` nevrací chybu
-4. Ujistěte se, že `VAPID_PRIVATE_KEY` je správně nastavený na Vercelu
-
-### Push subscription fails
-- Zkontrolujte že Notification.permission je "granted"
-- V Chrome DevTools → Application → Service Workers ověřte že SW je aktivní
-- Clear site data a zkuste znovu
-
-## Další kroky
-
-- **RLS policies**: Doporučuji přidat Row Level Security na `push_subscriptions` aby uživatelé nemohli vidět/smazat cizí subscriptions
-- **Ikony**: Nahraďte placeholder ikony profesionálními (můžete použít logo firmy)
-- **Rate limiting**: Na produkci zvažte rate limit pro `/api/push/send` (ochrana před spamem)
+Pro kontrolu provozu použijte `cron.job`, `cron.job_run_details` a pouze ne-tajná pole `enabled,last_tick_at,last_worker_at` v `push_private.settings`. Nikdy nevypisujte `worker_token` nebo šifrovací údaje odběrů. Fyzické doručení se ověřuje zkušebním tlačítkem na konkrétním telefonu.

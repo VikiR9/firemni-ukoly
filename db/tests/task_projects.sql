@@ -1,0 +1,31 @@
+begin;
+update attendance_private.settings set gateway_hash=encode(extensions.digest('projects-test','sha256'),'hex') where true;
+do $$
+declare a jsonb; b jsonb; c jsonb; pid uuid; other uuid; cid uuid; tid uuid:=gen_random_uuid(); denied boolean;
+begin
+ a:=public.task_board_gateway('projects-test','KARINA','create_project','{"title":"První projekt","color":"#aa33cc"}');pid:=(a->>'project_id')::uuid;cid:=(a->'columns'->0->>'id')::uuid;
+ assert (select color='#aa33cc' from task_board_private.projects where id=pid), 'Project color persists';
+ assert (a->>'can_edit_columns')::boolean, 'Employee owns columns';
+ a:=public.task_board_gateway('projects-test','KARINA','rename_column',jsonb_build_object('project_id',pid,'column_id',cid,'title','Vlastní sloupec','revision',a->'revision'));
+ assert a->'columns'->0->>'title'='Vlastní sloupec';
+ a:=public.task_board_gateway('projects-test','KARINA','create_task',jsonb_build_object('project_id',pid,'column_id',cid,'task_id',tid,'draft',jsonb_build_object('title','Sdílený projektový úkol','assignees',jsonb_build_array('Karina','Vendula'),'priority','Medium','due','2026-09-17','requires_approval',false)));
+ assert (select count(*)=2 from public.task_assignments where task_id=tid), 'Shared assignees preserved';
+ b:=public.task_board_gateway('projects-test','VENDULA','create_project','{"title":"Druhý projekt"}');other:=(b->>'project_id')::uuid;
+ b:=public.task_board_gateway('projects-test','VENDULA','add_task',jsonb_build_object('project_id',other,'column_id',b->'columns'->0->>'id','task_id',tid));
+ assert (select count(*)=2 from task_board_private.project_placements where task_id=tid), 'One task can appear in two personal projects';
+ denied:=false;begin perform public.task_board_gateway('projects-test','VENDULA','rename_column',jsonb_build_object('project_id',pid,'column_id',cid,'title','Cizí','revision',a->'revision'));exception when others then denied:=true;end; assert denied, 'Other employee cannot edit project';
+ denied:=false;begin perform public.task_board_gateway('projects-test','KARINA','move_task',jsonb_build_object('project_id',pid,'column_id',b->'columns'->0->>'id','task_id',tid,'revision',a->'revision'));exception when others then denied:=true;end; assert denied, 'Cross-project column rejected';
+ denied:=false;begin perform public.task_board_gateway('projects-test','KARINA','rename_column',jsonb_build_object('project_id',pid,'column_id',cid,'title','Stale','revision',-1));exception when others then denied:=true;end; assert denied, 'Stale revision rejected';
+ a:=public.task_board_gateway('projects-test','KARINA','move_column',jsonb_build_object('project_id',pid,'column_id',a->'columns'->2->>'id','before_id',cid,'revision',a->'revision'));
+ assert (a->'columns'->0->>'id')::uuid<>cid, 'Own column reordered';
+ a:=public.task_board_gateway('projects-test','KARINA','delete_column',jsonb_build_object('project_id',pid,'column_id',cid,'destination_id',a->'columns'->0->>'id','revision',a->'revision'));
+ assert (select count(*)=1 from public.tasks where id=tid), 'Deleting section preserves task';
+ c:=public.task_board_gateway('projects-test','VENDULA','snapshot',jsonb_build_object('project_id',other));
+ assert c->'columns'=b->'columns' and c->'placements'=b->'placements', 'Other project unchanged';
+ c:=public.task_board_gateway('projects-test','MILAN','snapshot',jsonb_build_object('project_id',pid));assert not (c->>'can_edit_columns')::boolean, 'Owner has read-only overview of employee organization';
+ c:=public.task_board_gateway('projects-test','KARINA','snapshot','{}');
+ assert exists(select 1 from jsonb_array_elements(c->'project_memberships') m where m->>'task_id'=tid::text and m->>'project_id'=pid::text), 'All-task view includes project membership';
+ assert not exists(select 1 from jsonb_array_elements(c->'projects') p where p->>'owner_username'<>'KARINA' and not (p->'member_usernames' ? 'KARINA')), 'Employee project list scoped to owned and shared projects';
+end $$;
+select 'Project assertions passed; rolled back' as result;
+rollback;

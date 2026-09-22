@@ -1,0 +1,33 @@
+begin;
+update attendance_private.settings set gateway_hash=encode(extensions.digest('board-test','sha256'),'hex');
+do $$
+declare b jsonb; col uuid; first_col uuid; next_col uuid; t1 uuid:=gen_random_uuid(); t2 uuid:=gen_random_uuid(); denied boolean;
+begin
+ b:=task_board_private.gateway('board-test','VIKTOR','snapshot','{}');
+ first_col:=(b->'columns'->0->>'id')::uuid;
+ b:=task_board_private.gateway('board-test','VIKTOR','create_column','{"title":"Testovací sloupec"}');
+ select id into col from task_board_private.columns where title='Testovací sloupec';
+ b:=task_board_private.gateway('board-test','VIKTOR','rename_column',jsonb_build_object('revision',b->'revision','column_id',col,'title','Přejmenovaný sloupec'));
+ assert (select title='Přejmenovaný sloupec' from task_board_private.columns where id=col), 'Rename persists';
+ b:=task_board_private.gateway('board-test','KARINA','create_task',jsonb_build_object('task_id',t1,'column_id',col,'draft',jsonb_build_object('title','Board test A','description','','priority','Medium','assignees',jsonb_build_array('Karina'),'requires_approval',false)));
+ b:=task_board_private.gateway('board-test','KARINA','create_task',jsonb_build_object('task_id',t2,'column_id',col,'draft',jsonb_build_object('title','Board test B','description','','priority','Medium','assignees',jsonb_build_array('Karina'),'requires_approval',false)));
+ assert (select column_id=col from task_board_private.placements where task_id=t1), 'Task created directly in column';
+ b:=task_board_private.gateway('board-test','KARINA','move_task',jsonb_build_object('task_id',t2,'column_id',col,'before_id',t1,'revision',b->'revision'));
+ assert (select a.position<c.position from task_board_private.placements a cross join task_board_private.placements c where a.task_id=t2 and c.task_id=t1), 'Card order persists';
+ denied:=false;begin perform task_board_private.gateway('board-test','VENDULA','move_task',jsonb_build_object('task_id',t1,'column_id',first_col,'revision',b->'revision'));exception when others then denied:=true;end;
+ assert denied, 'Unrelated employee cannot move task';
+ denied:=false;begin perform task_board_private.gateway('board-test','KARINA','rename_column',jsonb_build_object('column_id',col,'title','No','revision',b->'revision'));exception when others then denied:=true;end;
+ assert denied, 'Employee cannot rename shared columns';
+ denied:=false;begin perform task_board_private.gateway('board-test','KARINA','move_task',jsonb_build_object('task_id',t1,'column_id',first_col,'revision',-1));exception when others then denied:=true;end;
+ assert denied, 'Stale move rejected';
+ b:=task_board_private.gateway('board-test','VIKTOR','move_column',jsonb_build_object('column_id',col,'before_id',first_col,'revision',b->'revision'));
+ assert (b->'columns'->0->>'id')::uuid=col, 'Column order persists';
+ b:=task_board_private.gateway('board-test','VIKTOR','delete_column',jsonb_build_object('column_id',col,'destination_id',first_col,'revision',b->'revision'));
+ assert (select count(*)=2 from task_board_private.placements where task_id in(t1,t2) and column_id=first_col), 'Deleting column preserves all tasks';
+ assert (select count(*)=2 from public.tasks where id in(t1,t2)), 'Task content preserved';
+ assert (select count(*)=2 from public.task_assignments where task_id in(t1,t2) and status='ACCEPTED'), 'Placement does not alter approval workflow';
+ denied:=false;begin perform task_board_private.gateway('wrong','VIKTOR','snapshot','{}');exception when others then denied:=true;end;
+ assert denied, 'Gateway key required';
+end $$;
+select 'Task board assertions passed; rolled back' as result;
+rollback;

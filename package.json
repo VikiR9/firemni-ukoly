@@ -9,13 +9,15 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@dnd-kit/core": "6.3.1",
+    "@dnd-kit/sortable": "10.0.0",
+    "@dnd-kit/utilities": "3.2.2",
     "@supabase/supabase-js": "2.110.7",
     "html2canvas": "^1.4.1",
     "jspdf": "4.2.1",
-    "next": "16.2.10",
+    "next": "16.3.4",
     "react": "19.2.7",
     "react-dom": "19.2.7",
-    "react-onesignal": "^3.4.0",
     "web-push": "^3.6.7"
   },
   "devDependencies": {
@@ -25,11 +27,11 @@
     "@types/react-dom": "^19",
     "@types/web-push": "^3.6.4",
     "eslint": "^9",
-    "eslint-config-next": "16.2.10",
+    "eslint-config-next": "16.3.4",
     "tailwindcss": "^4",
     "typescript": "^5"
   },
   "overrides": {
-    "postcss": "8.5.20"
+    "postcss": "8.5.28"
   }
 }

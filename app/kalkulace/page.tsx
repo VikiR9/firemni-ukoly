@@ -3,10 +3,11 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { loadSession, type User } from "@/lib/auth";
 import { supabase } from "@/lib/supabaseClient";
-import { LimmitLogo } from "@/lib/logo";
+import { LIMMIT_LOGO_SRC } from "@/lib/logo";
 import { DEFAULT_MODULES } from "@/lib/insurance-config";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
+import ModuleShell from "@/app/components/ModuleShell";
 
 // --- TYPES ---
 type SavedCalculation = {
@@ -505,16 +506,7 @@ export default function KalkulacePage() {
                                         <table cellpadding="0" cellspacing="0">
                                             <tr>
                                                 <td style="padding-right:12px;">
-                                                    <table cellpadding="0" cellspacing="2">
-                                                        <tr>
-                                                            <td style="width:16px;height:16px;background:#009ee3;border-radius:3px;"></td>
-                                                            <td style="width:16px;height:16px;background:#ffffff;border-radius:3px;"></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td style="width:16px;height:16px;background:#ffffff;border-radius:3px;"></td>
-                                                            <td style="width:16px;height:16px;background:#009ee3;border-radius:3px;"></td>
-                                                        </tr>
-                                                    </table>
+                                                    <img src="${window.location.origin}${LIMMIT_LOGO_SRC}" width="44" height="44" alt="LIMMIT" style="display:block;border-radius:5px;" />
                                                 </td>
                                                 <td>
                                                     <div style="font-size:28px;font-weight:bold;color:#ffffff;line-height:1.2;">NABÍDKA</div>
@@ -795,12 +787,7 @@ LIMMIT s.r.o.`;
       <div style="width:${A4_WIDTH_PX}px;height:${A4_HEIGHT_PX}px;max-height:${A4_HEIGHT_PX}px;overflow:hidden;position:relative;background:white;box-sizing:border-box;font-family:Arial,Helvetica,sans-serif;">
         <div style="background:#1a1a5c;color:white;padding:20px 40px;display:flex;justify-content:space-between;align-items:center;height:70px;">
           <div style="display:flex;align-items:center;gap:12px;">
-            <div style="display:grid;grid-template-columns:16px 16px;gap:2px;">
-              <div style="width:16px;height:16px;background:#009ee3;border-radius:3px;"></div>
-              <div style="width:16px;height:16px;background:#ffffff;border-radius:3px;"></div>
-              <div style="width:16px;height:16px;background:#ffffff;border-radius:3px;"></div>
-              <div style="width:16px;height:16px;background:#009ee3;border-radius:3px;"></div>
-            </div>
+            <img src="${LIMMIT_LOGO_SRC}" width="40" height="40" alt="LIMMIT" style="display:block;border-radius:5px;" />
             <span style="font-size:24px;font-weight:bold;">LIMMIT s.r.o.</span>
           </div>
           <div style="text-align:right;">
@@ -937,16 +924,26 @@ LIMMIT s.r.o.`;
 
   // --- UI ---
   return (
-    <div className="min-h-screen font-sans bg-zinc-900 text-white">
+    <ModuleShell user={currentUser} title="Kalkulace pojištění auta" section="Auto · pojištění" subtitle="Připravte varianty pojištění a přehlednou nabídku pro klienta."
+      items={[
+        { label: "Editace nabídky", icon: icons.edit, active: activeTab === "offer", onClick: () => setActiveTab("offer") },
+        { label: "Náhled a export", icon: icons.printer, active: activeTab === "preview", onClick: () => setActiveTab("preview") },
+      ]}
+      actions={<>
+        <button className="module-action module-action-primary" onClick={() => { setSaveName(saveName || clientData.name || "Nová kalkulace"); setShowSaveModal(true); }}>{icons.upload} Uložit</button>
+        <button className="module-action" onClick={() => { fetchCalculations(); setShowLoadModal(true); }}>{icons.folder} Načíst</button>
+        <button className="module-action" onClick={handleNewCalculation}>{icons.plus} Nová kalkulace</button>
+      </>}>
+
       {/* NOTIFICATION */}
       {notification && (
         <div
-          className={`fixed top-20 left-1/2 transform -translate-x-1/2 z-50 px-6 py-4 rounded-xl shadow-2xl text-white flex items-center gap-3 font-medium animate-fade-in ${
+          className={`module-notice fixed top-20 left-1/2 transform -translate-x-1/2 z-50 px-6 py-4 rounded-xl shadow-2xl text-white flex items-center gap-3 font-medium animate-fade-in ${
             notification.type === "error"
               ? "bg-red-500"
               : notification.type === "info"
-              ? "bg-blue-500"
-              : "bg-green-600"
+              ? "bg-[#147d70]"
+              : "bg-[#147d70]"
           }`}
         >
           {icons.checkCircle}
@@ -956,9 +953,9 @@ LIMMIT s.r.o.`;
 
       {/* SAVE MODAL */}
       {showSaveModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <div className="bg-zinc-800 rounded-2xl p-6 w-full max-w-md border border-zinc-700 shadow-2xl">
-            <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+        <div className="fixed inset-0 p-4 bg-[#102e32]/60 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md border border-[#e4e9e8] shadow-2xl">
+            <h3 className="text-xl font-bold text-[#182d35] mb-4 flex items-center gap-2">
               {icons.upload} Uložit kalkulaci
             </h3>
             <input
@@ -966,25 +963,25 @@ LIMMIT s.r.o.`;
               value={saveName}
               onChange={(e) => setSaveName(e.target.value)}
               placeholder="Název kalkulace..."
-              className="w-full p-3 bg-zinc-700 border border-zinc-600 rounded-lg text-white mb-4 outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full p-3 bg-[#f1f5f3] border border-[#d6e0dc] rounded-lg text-[#182d35] mb-4 outline-none focus:ring-2 focus:ring-[#67c7b5]"
               onKeyDown={(e) => e.key === "Enter" && saveToCloud()}
               autoFocus
             />
             {currentCalculationId && (
-              <p className="text-sm text-gray-400 mb-4">
+              <p className="text-sm text-[#71828a] mb-4">
                 ✏️ Aktualizujete existující kalkulaci
               </p>
             )}
             <div className="flex gap-3 justify-end">
               <button
                 onClick={() => setShowSaveModal(false)}
-                className="px-4 py-2 rounded-lg bg-zinc-700 text-gray-300 hover:bg-zinc-600 transition-all"
+                className="px-4 py-2 rounded-lg bg-[#f1f5f3] text-[#526c65] hover:bg-[#e4e9e8] transition-all"
               >
                 Zrušit
               </button>
               <button
                 onClick={saveToCloud}
-                className="px-6 py-2 rounded-lg bg-green-600 text-white font-bold hover:bg-green-700 transition-all flex items-center gap-2"
+                className="px-6 py-2 rounded-lg bg-[#147d70] text-white font-bold hover:bg-[#106451] transition-all flex items-center gap-2"
               >
                 {icons.save} Uložit
               </button>
@@ -995,32 +992,32 @@ LIMMIT s.r.o.`;
 
       {/* LOAD MODAL */}
       {showLoadModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <div className="bg-zinc-800 rounded-2xl p-6 w-full max-w-lg border border-zinc-700 shadow-2xl max-h-[80vh] flex flex-col">
-            <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+        <div className="fixed inset-0 p-4 bg-[#102e32]/60 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-lg border border-[#e4e9e8] shadow-2xl max-h-[80vh] flex flex-col">
+            <h3 className="text-xl font-bold text-[#182d35] mb-4 flex items-center gap-2">
               {icons.folder} Načíst kalkulaci
             </h3>
             <div className="flex-1 overflow-y-auto space-y-2 mb-4">
               {savedCalculations.length === 0 ? (
-                <p className="text-gray-400 text-center py-8">Nemáte žádné uložené kalkulace.</p>
+                <p className="text-[#71828a] text-center py-8">Nemáte žádné uložené kalkulace.</p>
               ) : (
                 savedCalculations.map((calc) => (
                   <div
                     key={calc.id}
-                    className={`p-4 rounded-lg border transition-all cursor-pointer hover:bg-zinc-700 ${
+                    className={`p-4 rounded-lg border transition-all cursor-pointer hover:bg-[#f1f5f3] ${
                       currentCalculationId === calc.id
-                        ? "border-[#009ee3] bg-zinc-700/50"
-                        : "border-zinc-600 bg-zinc-900"
+                        ? "border-[#147d70] bg-[#f1f5f3]"
+                        : "border-[#d6e0dc] bg-[#f5f7f6]"
                     }`}
                     onClick={() => loadCalculation(calc)}
                   >
                     <div className="flex justify-between items-start">
                       <div>
-                        <div className="font-bold text-white">{calc.name}</div>
-                        <div className="text-sm text-gray-400">
+                        <div className="font-bold text-[#182d35]">{calc.name}</div>
+                        <div className="text-sm text-[#71828a]">
                           {calc.client_data?.name || "Bez klienta"} • {calc.client_data?.car || "Bez vozidla"}
                         </div>
-                        <div className="text-xs text-gray-500 mt-1">
+                        <div className="text-xs text-[#71828a] mt-1">
                           {new Date(calc.updated_at).toLocaleDateString("cs-CZ", {
                             day: "numeric",
                             month: "long",
@@ -1035,7 +1032,7 @@ LIMMIT s.r.o.`;
                           e.stopPropagation();
                           deleteCalculation(calc.id);
                         }}
-                        className="text-gray-400 hover:text-red-500 p-1"
+                        className="text-[#71828a] hover:text-red-500 p-1"
                       >
                         {icons.trash}
                       </button>
@@ -1047,7 +1044,7 @@ LIMMIT s.r.o.`;
             <div className="flex justify-end">
               <button
                 onClick={() => setShowLoadModal(false)}
-                className="px-4 py-2 rounded-lg bg-zinc-700 text-gray-300 hover:bg-zinc-600 transition-all"
+                className="px-4 py-2 rounded-lg bg-[#f1f5f3] text-[#526c65] hover:bg-[#e4e9e8] transition-all"
               >
                 Zavřít
               </button>
@@ -1056,119 +1053,68 @@ LIMMIT s.r.o.`;
         </div>
       )}
 
-      {/* APP HEADER */}
-      <header className="bg-[#1a1a5c] text-white sticky top-0 z-40 shadow-lg border-b border-blue-900">
-        <div className="max-w-[1600px] mx-auto px-6 py-3 flex justify-between items-center">
-          <div className="flex items-center gap-4">
-            <LimmitLogo height={28} variant="light" />
-            <div className="h-6 w-px bg-blue-800"></div>
-            <h1 className="text-lg font-bold tracking-wide">Kalkulátor pojištění</h1>
-          </div>
-          <div className="flex gap-3">
-            <button
-              onClick={() => { setSaveName(saveName || clientData.name || "Nová kalkulace"); setShowSaveModal(true); }}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-500/20 text-green-100 hover:bg-green-500/30 hover:text-white transition-all text-sm font-medium"
-            >
-              {icons.upload} Uložit
-            </button>
-            <button
-              onClick={() => { fetchCalculations(); setShowLoadModal(true); }}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-yellow-500/20 text-yellow-100 hover:bg-yellow-500/30 hover:text-white transition-all text-sm font-medium"
-            >
-              {icons.folder} Načíst
-            </button>
-            <div className="h-8 w-px bg-blue-800 mx-1"></div>
-            <button
-              onClick={handleNewCalculation}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500/10 text-red-100 hover:bg-red-500/20 hover:text-white transition-all text-sm font-medium"
-            >
-              {icons.refresh} Nová kalkulace
-            </button>
-            <div className="h-8 w-px bg-blue-800 mx-1"></div>
-            <button
-              onClick={() => setActiveTab("offer")}
-              className={`px-4 py-2 rounded-lg transition-all text-sm font-medium flex items-center gap-2 ${
-                activeTab === "offer"
-                  ? "bg-[#009ee3] text-white shadow-md transform scale-105"
-                  : "text-blue-200 hover:bg-white/5"
-              }`}
-            >
-              {icons.edit} Editace
-            </button>
-            <button
-              onClick={() => setActiveTab("preview")}
-              className={`px-4 py-2 rounded-lg transition-all text-sm font-medium flex items-center gap-2 ${
-                activeTab === "preview"
-                  ? "bg-[#009ee3] text-white shadow-md transform scale-105"
-                  : "text-blue-200 hover:bg-white/5"
-              }`}
-            >
-              {icons.printer} Náhled & Export
-            </button>
-          </div>
-        </div>
-      </header>
 
-      <main className="max-w-[1600px] mx-auto p-6">
+
+      <main className="module-content">
         {/* CLIENT FORM */}
-        <div className="bg-zinc-800 rounded-2xl shadow-sm border border-zinc-700 p-6 mb-8">
+        <div className="bg-white rounded-2xl shadow-sm border border-[#e4e9e8] p-6 mb-8">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+            <h2 className="text-lg font-bold text-[#182d35] flex items-center gap-2">
               {icons.user} Údaje o klientovi
             </h2>
-            <button onClick={() => setIsEditing(!isEditing)} className="text-[#009ee3] text-sm font-semibold hover:underline">
+            <button onClick={() => setIsEditing(!isEditing)} className="text-[#147d70] text-sm font-semibold hover:underline">
               {isEditing ? "Ukončit úpravy" : "Upravit údaje"}
             </button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div>
-              <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Jméno a Příjmení</label>
+              <label className="block text-xs font-bold text-[#71828a] uppercase mb-1">Jméno a Příjmení</label>
               {isEditing ? (
                 <input
                   value={clientData.name}
                   onChange={(e) => setClientData({ ...clientData, name: e.target.value })}
-                  className="w-full p-2 bg-zinc-700 border border-zinc-600 rounded focus:ring-2 focus:ring-blue-500 outline-none font-medium text-white"
+                  className="w-full p-2 bg-[#f1f5f3] border border-[#d6e0dc] rounded focus:ring-2 focus:ring-[#67c7b5] outline-none font-medium text-[#182d35]"
                 />
               ) : (
-                <p className="text-lg font-semibold text-white">{clientData.name || "-"}</p>
+                <p className="text-lg font-semibold text-[#182d35]">{clientData.name || "-"}</p>
               )}
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Vozidlo</label>
+              <label className="block text-xs font-bold text-[#71828a] uppercase mb-1">Vozidlo</label>
               {isEditing ? (
                 <input
                   value={clientData.car}
                   onChange={(e) => setClientData({ ...clientData, car: e.target.value })}
-                  className="w-full p-2 bg-zinc-700 border border-zinc-600 rounded focus:ring-2 focus:ring-blue-500 outline-none font-medium text-white"
+                  className="w-full p-2 bg-[#f1f5f3] border border-[#d6e0dc] rounded focus:ring-2 focus:ring-[#67c7b5] outline-none font-medium text-[#182d35]"
                 />
               ) : (
-                <p className="text-lg font-semibold text-white">{clientData.car || "-"}</p>
+                <p className="text-lg font-semibold text-[#182d35]">{clientData.car || "-"}</p>
               )}
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Pojistná částka</label>
+              <label className="block text-xs font-bold text-[#71828a] uppercase mb-1">Pojistná částka</label>
               {isEditing ? (
                 <input
                   type="number"
                   value={clientData.carValue}
                   onChange={(e) => setClientData({ ...clientData, carValue: e.target.value })}
-                  className="w-full p-2 bg-zinc-700 border border-zinc-600 rounded focus:ring-2 focus:ring-blue-500 outline-none font-medium text-white"
+                  className="w-full p-2 bg-[#f1f5f3] border border-[#d6e0dc] rounded focus:ring-2 focus:ring-[#67c7b5] outline-none font-medium text-[#182d35]"
                   placeholder="Kč"
                 />
               ) : (
-                <p className="text-lg font-bold text-[#009ee3]">{formatCurrency(clientData.carValue)}</p>
+                <p className="text-lg font-bold text-[#147d70]">{formatCurrency(clientData.carValue)}</p>
               )}
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Adresa</label>
+              <label className="block text-xs font-bold text-[#71828a] uppercase mb-1">Adresa</label>
               {isEditing ? (
                 <input
                   value={clientData.address}
                   onChange={(e) => setClientData({ ...clientData, address: e.target.value })}
-                  className="w-full p-2 bg-zinc-700 border border-zinc-600 rounded focus:ring-2 focus:ring-blue-500 outline-none font-medium text-white"
+                  className="w-full p-2 bg-[#f1f5f3] border border-[#d6e0dc] rounded focus:ring-2 focus:ring-[#67c7b5] outline-none font-medium text-[#182d35]"
                 />
               ) : (
-                <p className="text-base text-gray-300">{clientData.address || "-"}</p>
+                <p className="text-base text-[#526c65]">{clientData.address || "-"}</p>
               )}
             </div>
           </div>
@@ -1178,14 +1124,14 @@ LIMMIT s.r.o.`;
         {activeTab === "offer" && (
           <div className="animate-fade-in">
             {isEditing && (
-              <div className="bg-zinc-800 border border-zinc-700 rounded-xl p-4 mb-8 flex flex-wrap items-center gap-4">
-                <span className="text-xs font-bold text-gray-400 uppercase flex items-center gap-2">
+              <div className="bg-white border border-[#e4e9e8] rounded-xl p-4 mb-8 flex flex-wrap items-center gap-4">
+                <span className="text-xs font-bold text-[#71828a] uppercase flex items-center gap-2">
                   {icons.settings} Globální připojištění:
                 </span>
                 {moduleTypes.map((t) => (
-                  <span key={t.id} className="bg-zinc-700 px-3 py-1 rounded-full text-sm border border-zinc-600 flex items-center gap-2 shadow-sm">
+                  <span key={t.id} className="bg-[#f1f5f3] px-3 py-1 rounded-full text-sm border border-[#d6e0dc] flex items-center gap-2 shadow-sm">
                     {t.name}
-                    <button onClick={() => removeModuleType(t.id)} className="text-gray-400 hover:text-red-500">
+                    <button onClick={() => removeModuleType(t.id)} className="text-[#71828a] hover:text-red-500">
                       {icons.x}
                     </button>
                   </span>
@@ -1195,10 +1141,10 @@ LIMMIT s.r.o.`;
                     value={newModuleTypeName}
                     onChange={(e) => setNewModuleTypeName(e.target.value)}
                     placeholder="Název..."
-                    className="p-1.5 px-3 text-sm border border-zinc-600 bg-zinc-700 rounded-lg outline-none w-40 focus:ring-2 focus:ring-blue-400 text-white"
+                    className="p-1.5 px-3 text-sm border border-[#d6e0dc] bg-[#f1f5f3] rounded-lg outline-none w-40 focus:ring-2 focus:ring-[#67c7b5] text-[#182d35]"
                     onKeyDown={(e) => e.key === "Enter" && addModuleType()}
                   />
-                  <button onClick={addModuleType} className="bg-zinc-700 p-1.5 border border-zinc-600 rounded-lg hover:bg-zinc-600 text-[#009ee3]">
+                  <button onClick={addModuleType} className="bg-[#f1f5f3] p-1.5 border border-[#d6e0dc] rounded-lg hover:bg-[#e4e9e8] text-[#147d70]">
                     {icons.plus}
                   </button>
                 </div>
@@ -1206,9 +1152,9 @@ LIMMIT s.r.o.`;
             )}
 
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-white">Kalkulace variant</h2>
+              <h2 className="text-xl font-bold text-[#182d35]">Kalkulace variant</h2>
               {isEditing && (
-                <button onClick={addOffer} className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 shadow-md flex items-center gap-2 text-sm font-medium">
+                <button onClick={addOffer} className="bg-[#147d70] text-white px-4 py-2 rounded-lg hover:bg-[#106451] shadow-md flex items-center gap-2 text-sm font-medium">
                   {icons.plus} Přidat variantu
                 </button>
               )}
@@ -1218,12 +1164,12 @@ LIMMIT s.r.o.`;
               {offers.map((offer) => (
                 <div
                   key={offer.id}
-                  className={`snap-center shrink-0 w-full md:w-[400px] bg-zinc-800 rounded-2xl shadow-lg border-t-4 flex flex-col relative transition-all ${
-                    offer.selected ? "border-[#009ee3] ring-4 ring-blue-900/50 scale-[1.01]" : "border-zinc-600"
+                  className={`snap-center shrink-0 w-full md:w-[400px] bg-white rounded-2xl shadow-lg border-t-4 flex flex-col relative transition-all ${
+                    offer.selected ? "border-[#147d70] ring-4 ring-[#147d70]/15" : "border-[#d6e0dc]"
                   }`}
                 >
                   {/* HEADER */}
-                  <div className="p-6 border-b border-zinc-700 bg-zinc-900/50 rounded-t-xl">
+                  <div className="p-6 border-b border-[#e4e9e8] bg-[#f5f7f6] rounded-t-xl">
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         {isEditing ? (
@@ -1231,7 +1177,7 @@ LIMMIT s.r.o.`;
                             <select
                               value={offer.insurer}
                               onChange={(e) => handleOfferChange(offer.id, "root", "insurer", e.target.value)}
-                              className="w-full p-2 mb-2 border border-zinc-600 bg-zinc-700 rounded font-bold text-white"
+                              className="w-full p-2 mb-2 border border-[#d6e0dc] bg-[#f1f5f3] rounded font-bold text-[#182d35]"
                             >
                               {INSURERS.map((i) => (
                                 <option key={i} value={i}>
@@ -1242,20 +1188,20 @@ LIMMIT s.r.o.`;
                             <input
                               value={offer.title}
                               onChange={(e) => handleOfferChange(offer.id, "root", "title", e.target.value)}
-                              className="w-1/2 text-sm bg-transparent border-b border-dashed border-zinc-600 outline-none text-gray-400"
+                              className="w-1/2 text-sm bg-transparent border-b border-dashed border-[#d6e0dc] outline-none text-[#71828a]"
                             />
                           </>
                         ) : (
                           <>
-                            <h3 className="text-xl font-bold text-white mb-1">{offer.insurer}</h3>
-                            <p className="text-sm text-gray-400">{offer.title}</p>
+                            <h3 className="text-xl font-bold text-[#182d35] mb-1">{offer.insurer}</h3>
+                            <p className="text-sm text-[#71828a]">{offer.title}</p>
                           </>
                         )}
                       </div>
                       {isEditing && (
                         <button 
                           onClick={() => removeOffer(offer.id)} 
-                          className="ml-2 p-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-all"
+                          className="ml-2 p-2 rounded-lg bg-red-500/10 text-red-700 hover:bg-red-500/20 hover:text-red-700 transition-all"
                           title="Odstranit variantu"
                         >
                           {icons.trash}
@@ -1263,8 +1209,8 @@ LIMMIT s.r.o.`;
                       )}
                     </div>
                     <div className="text-right mt-2">
-                      <div className="text-3xl font-bold text-[#009ee3]">{formatCurrency(calculateTotal(offer))}</div>
-                      <div className="text-xs font-bold text-gray-400 uppercase tracking-wider">Ročně</div>
+                      <div className="text-3xl font-bold text-[#147d70]">{formatCurrency(calculateTotal(offer))}</div>
+                      <div className="text-xs font-bold text-[#71828a] uppercase tracking-wider">Ročně</div>
                     </div>
                   </div>
 
@@ -1272,7 +1218,7 @@ LIMMIT s.r.o.`;
                     {/* LIABILITY */}
                     <div
                       className={`p-4 rounded-xl border transition-colors ${
-                        offer.liability.active ? "bg-blue-900/20 border-blue-700" : "bg-zinc-900/50 border-zinc-700 opacity-60"
+                        offer.liability.active ? "bg-[#edf6f2] border-[#c9e3da]" : "bg-[#f5f7f6] border-[#e4e9e8] opacity-60"
                       }`}
                     >
                       <div className="flex justify-between items-center mb-3">
@@ -1282,38 +1228,38 @@ LIMMIT s.r.o.`;
                               type="checkbox"
                               checked={offer.liability.active}
                               onChange={() => handleOfferChange(offer.id, "liability", "active", !offer.liability.active)}
-                              className="w-4 h-4 text-blue-600 rounded"
+                              className="w-4 h-4 text-[#147d70] rounded"
                             />
                           )}
-                          <span className="font-bold text-sm text-white">Povinné ručení</span>
+                          <span className="font-bold text-sm text-[#182d35]">Povinné ručení</span>
                         </div>
                         {isEditing ? (
                           <input
                             type="number"
                             value={offer.liability.price}
                             onChange={(e) => handleOfferChange(offer.id, "liability", "price", e.target.value)}
-                            className="w-24 text-right p-1 border border-zinc-600 bg-zinc-700 rounded text-sm font-bold text-white"
+                            className="w-24 text-right p-1 border border-[#d6e0dc] bg-[#f1f5f3] rounded text-sm font-bold text-[#182d35]"
                             placeholder="0"
                           />
                         ) : (
-                          <span className="font-bold text-white">{formatCurrency(offer.liability.price)}</span>
+                          <span className="font-bold text-[#182d35]">{formatCurrency(offer.liability.price)}</span>
                         )}
                       </div>
                       {offer.liability.active && (
                         <div className="flex items-center gap-2 pl-6">
                           {isEditing ? (
-                            <div className="flex items-center w-full bg-zinc-700 border border-zinc-600 rounded px-2">
+                            <div className="flex items-center w-full bg-[#f1f5f3] border border-[#d6e0dc] rounded px-2">
                               <input
                                 type="number"
                                 value={offer.liability.limit}
                                 onChange={(e) => handleOfferChange(offer.id, "liability", "limit", e.target.value)}
-                                className="w-full p-1 text-sm outline-none bg-transparent text-white"
+                                className="w-full p-1 text-sm outline-none bg-transparent text-[#182d35]"
                                 placeholder="35"
                               />
-                              <span className="text-xs text-gray-400 whitespace-nowrap">mil. Kč</span>
+                              <span className="text-xs text-[#71828a] whitespace-nowrap">mil. Kč</span>
                             </div>
                           ) : (
-                            <span className="text-sm text-gray-300">
+                            <span className="text-sm text-[#526c65]">
                               Limit: <strong>{offer.liability.limit} mil. Kč</strong>
                             </span>
                           )}
@@ -1324,7 +1270,7 @@ LIMMIT s.r.o.`;
                     {/* ALLRISK */}
                     <div
                       className={`p-4 rounded-xl border transition-colors ${
-                        offer.allrisk.active ? "bg-blue-900/20 border-blue-700" : "bg-zinc-900/50 border-zinc-700 opacity-60"
+                        offer.allrisk.active ? "bg-[#edf6f2] border-[#c9e3da]" : "bg-[#f5f7f6] border-[#e4e9e8] opacity-60"
                       }`}
                     >
                       <div className="flex justify-between items-center mb-3">
@@ -1334,21 +1280,21 @@ LIMMIT s.r.o.`;
                               type="checkbox"
                               checked={offer.allrisk.active}
                               onChange={() => handleOfferChange(offer.id, "allrisk", "active", !offer.allrisk.active)}
-                              className="w-4 h-4 text-blue-600 rounded"
+                              className="w-4 h-4 text-[#147d70] rounded"
                             />
                           )}
-                          <span className="font-bold text-sm text-white">Havarijní (Allrisk)</span>
+                          <span className="font-bold text-sm text-[#182d35]">Havarijní (Allrisk)</span>
                         </div>
                         {isEditing ? (
                           <input
                             type="number"
                             value={offer.allrisk.price}
                             onChange={(e) => handleOfferChange(offer.id, "allrisk", "price", e.target.value)}
-                            className="w-24 text-right p-1 border border-zinc-600 bg-zinc-700 rounded text-sm font-bold text-white"
+                            className="w-24 text-right p-1 border border-[#d6e0dc] bg-[#f1f5f3] rounded text-sm font-bold text-[#182d35]"
                             placeholder="0"
                           />
                         ) : (
-                          <span className="font-bold text-white">{formatCurrency(offer.allrisk.price)}</span>
+                          <span className="font-bold text-[#182d35]">{formatCurrency(offer.allrisk.price)}</span>
                         )}
                       </div>
 
@@ -1356,32 +1302,32 @@ LIMMIT s.r.o.`;
                         <div className="pl-6 space-y-3">
                           {/* Limit */}
                           <div className="space-y-1">
-                            <label className="text-[10px] uppercase font-bold text-gray-400">Pojistná částka</label>
+                            <label className="text-[10px] uppercase font-bold text-[#71828a]">Pojistná částka</label>
                             {isEditing ? (
-                              <div className="flex items-center w-full bg-zinc-700 border border-zinc-600 rounded px-2">
+                              <div className="flex items-center w-full bg-[#f1f5f3] border border-[#d6e0dc] rounded px-2">
                                 <input
                                   type="number"
                                   value={offer.allrisk.limit}
                                   onChange={(e) => handleOfferChange(offer.id, "allrisk", "limit", e.target.value)}
-                                  className="w-full p-1 text-sm outline-none bg-transparent text-white"
+                                  className="w-full p-1 text-sm outline-none bg-transparent text-[#182d35]"
                                   placeholder="0"
                                 />
-                                <span className="text-xs text-gray-400">Kč</span>
+                                <span className="text-xs text-[#71828a]">Kč</span>
                               </div>
                             ) : (
-                              <div className="text-sm font-semibold text-gray-300">{formatCurrency(offer.allrisk.limit)}</div>
+                              <div className="text-sm font-semibold text-[#526c65]">{formatCurrency(offer.allrisk.limit)}</div>
                             )}
                           </div>
 
                           {/* Deductible */}
                           <div className="space-y-1">
-                            <label className="text-[10px] uppercase font-bold text-gray-400">Spoluúčast</label>
+                            <label className="text-[10px] uppercase font-bold text-[#71828a]">Spoluúčast</label>
                             {isEditing ? (
                               <div className="flex gap-2">
                                 <select
                                   value={offer.allrisk.pct}
                                   onChange={(e) => handleOfferChange(offer.id, "allrisk", "pct", e.target.value)}
-                                  className="w-1/2 p-1 text-sm border border-zinc-600 bg-zinc-700 rounded text-white"
+                                  className="w-1/2 p-1 text-sm border border-[#d6e0dc] bg-[#f1f5f3] rounded text-[#182d35]"
                                 >
                                   <option value="0">0%</option>
                                   <option value="5">5%</option>
@@ -1391,7 +1337,7 @@ LIMMIT s.r.o.`;
                                 <select
                                   value={offer.allrisk.min}
                                   onChange={(e) => handleOfferChange(offer.id, "allrisk", "min", e.target.value)}
-                                  className="w-1/2 p-1 text-sm border border-zinc-600 bg-zinc-700 rounded text-white"
+                                  className="w-1/2 p-1 text-sm border border-[#d6e0dc] bg-[#f1f5f3] rounded text-[#182d35]"
                                 >
                                   <option value="1000">1 000 Kč</option>
                                   <option value="5000">5 000 Kč</option>
@@ -1400,7 +1346,7 @@ LIMMIT s.r.o.`;
                                 </select>
                               </div>
                             ) : (
-                              <div className="text-sm text-gray-300">
+                              <div className="text-sm text-[#526c65]">
                                 {offer.allrisk.pct}%, min. {new Intl.NumberFormat("cs-CZ").format(offer.allrisk.min)} Kč
                               </div>
                             )}
@@ -1411,7 +1357,7 @@ LIMMIT s.r.o.`;
 
                     {/* MODULES */}
                     <div>
-                      <div className="text-xs font-bold uppercase text-gray-400 mb-2">Připojištění</div>
+                      <div className="text-xs font-bold uppercase text-[#71828a] mb-2">Připojištění</div>
                       <div className="space-y-2">
                         {moduleTypes.map((t) => {
                           const m = offer.modules[t.id] || { active: false, price: 0, limit: "" };
@@ -1420,7 +1366,7 @@ LIMMIT s.r.o.`;
                             <div
                               key={t.id}
                               className={`flex items-center justify-between p-2 rounded border ${
-                                m.active ? "bg-zinc-700 border-zinc-600" : "bg-transparent border-transparent opacity-50"
+                                m.active ? "bg-[#f1f5f3] border-[#d6e0dc]" : "bg-transparent border-transparent opacity-50"
                               }`}
                             >
                               <div className="flex items-center gap-2 overflow-hidden">
@@ -1429,22 +1375,22 @@ LIMMIT s.r.o.`;
                                     type="checkbox"
                                     checked={m.active}
                                     onChange={() => handleModuleChange(offer.id, t.id, "active")}
-                                    className="w-4 h-4 text-blue-600 rounded flex-shrink-0"
+                                    className="w-4 h-4 text-[#147d70] rounded flex-shrink-0"
                                   />
                                 )}
                                 <div className="min-w-0">
-                                  <div className="text-sm font-medium text-gray-300 truncate">{t.name}</div>
+                                  <div className="text-sm font-medium text-[#526c65] truncate">{t.name}</div>
                                   {m.active &&
                                     (isEditing ? (
                                       <input
                                         type="text"
                                         value={m.limit}
                                         onChange={(e) => handleModuleChange(offer.id, t.id, "limit", e.target.value)}
-                                        className="text-xs border-b border-zinc-600 bg-transparent w-full outline-none text-gray-400"
+                                        className="text-xs border-b border-[#d6e0dc] bg-transparent w-full outline-none text-[#71828a]"
                                         placeholder="Popis/Limit"
                                       />
                                     ) : (
-                                      <div className="text-xs text-gray-500 truncate">{m.limit}</div>
+                                      <div className="text-xs text-[#71828a] truncate">{m.limit}</div>
                                     ))}
                                 </div>
                               </div>
@@ -1454,11 +1400,11 @@ LIMMIT s.r.o.`;
                                     type="number"
                                     value={m.price}
                                     onChange={(e) => handleModuleChange(offer.id, t.id, "price", e.target.value)}
-                                    className="w-16 text-right p-1 border border-zinc-600 bg-zinc-700 rounded text-xs font-bold text-white"
+                                    className="w-16 text-right p-1 border border-[#d6e0dc] bg-[#f1f5f3] rounded text-xs font-bold text-[#182d35]"
                                     placeholder="0"
                                   />
                                 ) : (
-                                  <div className="text-sm font-bold whitespace-nowrap pl-2 text-white">{formatCurrency(m.price)}</div>
+                                  <div className="text-sm font-bold whitespace-nowrap pl-2 text-[#182d35]">{formatCurrency(m.price)}</div>
                                 ))}
                             </div>
                           );
@@ -1467,11 +1413,11 @@ LIMMIT s.r.o.`;
                     </div>
                   </div>
 
-                  <div className="mt-auto p-4 border-t border-zinc-700 bg-zinc-900/50 rounded-b-xl text-center">
+                  <div className="mt-auto p-4 border-t border-[#e4e9e8] bg-[#f5f7f6] rounded-b-xl text-center">
                     <button
                       onClick={() => !isEditing && setOffers((prev) => prev.map((o) => ({ ...o, selected: o.id === offer.id })))}
                       className={`w-full py-2 rounded-lg font-bold text-sm transition-all ${
-                        offer.selected ? "bg-[#009ee3] text-white shadow-lg" : "bg-zinc-700 border border-zinc-600 text-gray-400 hover:bg-zinc-600"
+                        offer.selected ? "bg-[#147d70] text-white shadow-sm" : "bg-[#f1f5f3] border border-[#d6e0dc] text-[#71828a] hover:bg-[#e4e9e8]"
                       }`}
                     >
                       {offer.selected ? "DOPORUČENÁ VARIANTA" : "Vybrat tuto variantu"}
@@ -1486,32 +1432,32 @@ LIMMIT s.r.o.`;
         {/* PREVIEW TAB */}
         {activeTab === "preview" && (
           <div className="max-w-4xl mx-auto">
-            <div className="bg-zinc-800 rounded-2xl shadow-xl overflow-hidden border border-zinc-700 mb-8">
-              <div className="p-8 text-center border-b border-zinc-700 bg-zinc-900/50">
-                <h2 className="text-2xl font-bold text-white">Náhled před odesláním</h2>
-                <p className="text-gray-400 mb-6">Zkontrolujte údaje a vyberte způsob exportu.</p>
+            <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-[#e4e9e8] mb-8">
+              <div className="p-8 text-center border-b border-[#e4e9e8] bg-[#f5f7f6]">
+                <h2 className="text-2xl font-bold text-[#182d35]">Náhled před odesláním</h2>
+                <p className="text-[#71828a] mb-6">Zkontrolujte údaje a vyberte způsob exportu.</p>
                 <div className="flex flex-wrap justify-center gap-4">
                   <button
                     onClick={downloadPdf}
-                    className="bg-red-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:bg-red-700 hover:scale-105 transition-all flex items-center gap-2"
+                    className="bg-red-600 text-white px-6 py-3 rounded-xl font-bold shadow-sm hover:bg-red-700 transition-all flex items-center gap-2"
                   >
                     {icons.fileText} Stáhnout PDF
                   </button>
                   <button
                     onClick={copyEmailText}
-                    className="bg-green-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:bg-green-700 hover:scale-105 transition-all flex items-center gap-2"
+                    className="bg-[#147d70] text-white px-6 py-3 rounded-xl font-bold shadow-sm hover:bg-[#106451] transition-all flex items-center gap-2"
                   >
                     {icons.copy} Kopírovat text
                   </button>
                   <button
                     onClick={copyEmailHtml}
-                    className="bg-purple-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:bg-purple-700 hover:scale-105 transition-all flex items-center gap-2"
+                    className="bg-[#526c65] text-white px-6 py-3 rounded-xl font-bold shadow-sm hover:bg-[#3d5750] transition-all flex items-center gap-2"
                   >
                     {icons.fileText} Kopírovat HTML
                   </button>
                   <button
                     onClick={sendEmail}
-                    className="bg-[#009ee3] text-white px-8 py-3 rounded-xl font-bold shadow-lg hover:bg-blue-500 hover:scale-105 transition-all flex items-center gap-2"
+                    className="bg-[#147d70] text-white px-8 py-3 rounded-xl font-bold shadow-sm hover:bg-[#147d70] transition-all flex items-center gap-2"
                   >
                     {icons.mail} Odeslat e-mailem
                   </button>
@@ -1520,52 +1466,52 @@ LIMMIT s.r.o.`;
             </div>
 
             {/* Preview */}
-            <div className="bg-zinc-800 p-4 rounded-2xl shadow-inner border border-zinc-700">
-              <div className="text-center text-xs text-gray-400 mb-4 font-medium">NÁHLED NABÍDKY</div>
-              <div className="bg-zinc-900 rounded-xl p-6 border border-zinc-700">
+            <div className="bg-white p-4 rounded-2xl shadow-inner border border-[#e4e9e8]">
+              <div className="text-center text-xs text-[#71828a] mb-4 font-medium">NÁHLED NABÍDKY</div>
+              <div className="bg-[#f5f7f6] rounded-xl p-6 border border-[#e4e9e8]">
                 {/* Client Info */}
-                <div className="mb-6 p-4 bg-zinc-800 rounded-lg border-l-4 border-[#009ee3]">
+                <div className="mb-6 p-4 bg-white rounded-lg border-l-4 border-[#147d70]">
                   <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div className="text-gray-400">Klient:</div>
-                    <div className="font-bold text-white">{clientData.name || "-"}</div>
-                    <div className="text-gray-400">Vozidlo:</div>
-                    <div className="font-bold text-white">{clientData.car || "-"}</div>
-                    <div className="text-gray-400">Pojistná částka:</div>
-                    <div className="font-bold text-[#009ee3]">{formatCurrency(clientData.carValue)}</div>
-                    <div className="text-gray-400">Adresa:</div>
-                    <div className="font-bold text-white">{clientData.address || "-"}</div>
+                    <div className="text-[#71828a]">Klient:</div>
+                    <div className="font-bold text-[#182d35]">{clientData.name || "-"}</div>
+                    <div className="text-[#71828a]">Vozidlo:</div>
+                    <div className="font-bold text-[#182d35]">{clientData.car || "-"}</div>
+                    <div className="text-[#71828a]">Pojistná částka:</div>
+                    <div className="font-bold text-[#147d70]">{formatCurrency(clientData.carValue)}</div>
+                    <div className="text-[#71828a]">Adresa:</div>
+                    <div className="font-bold text-[#182d35]">{clientData.address || "-"}</div>
                   </div>
                 </div>
 
                 {/* Offers Grid */}
-                <div className={`grid gap-4 ${offers.length <= 2 ? "grid-cols-2" : "grid-cols-3"}`}>
+                <div className={`grid gap-4 ${offers.length <= 2 ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3"}`}>
                   {offers.slice(0, 4).map((offer) => (
                     <div
                       key={offer.id}
                       className={`rounded-xl overflow-hidden border ${
-                        offer.selected ? "border-[#009ee3] ring-2 ring-[#009ee3]/30" : "border-zinc-700"
+                        offer.selected ? "border-[#147d70] ring-2 ring-[#147d70]/15" : "border-[#e4e9e8]"
                       }`}
                     >
                       {offer.selected && (
-                        <div className="bg-[#009ee3] text-white text-center text-xs font-bold py-1 uppercase">★ Doporučená</div>
+                        <div className="bg-[#147d70] text-white text-center text-xs font-bold py-1 uppercase">★ Doporučená</div>
                       )}
-                      <div className="p-4 bg-zinc-800 text-center border-b border-zinc-700">
-                        <div className="text-sm font-bold text-white">{offer.insurer}</div>
-                        <div className="text-xs text-gray-400">{offer.title}</div>
-                        <div className="text-xl font-bold text-[#009ee3] mt-2">{formatCurrency(calculateTotal(offer))}</div>
-                        <div className="text-xs text-gray-500 uppercase">Ročně</div>
+                      <div className="p-4 bg-white text-center border-b border-[#e4e9e8]">
+                        <div className="text-sm font-bold text-[#182d35]">{offer.insurer}</div>
+                        <div className="text-xs text-[#71828a]">{offer.title}</div>
+                        <div className="text-xl font-bold text-[#147d70] mt-2">{formatCurrency(calculateTotal(offer))}</div>
+                        <div className="text-xs text-[#71828a] uppercase">Ročně</div>
                       </div>
-                      <div className="p-3 bg-zinc-900 text-xs space-y-1">
+                      <div className="p-3 bg-[#f5f7f6] text-xs space-y-1">
                         {offer.liability.active && (
                           <div className="flex justify-between">
-                            <span className="text-gray-400">POV ({offer.liability.limit} mil.)</span>
-                            <span className="font-bold text-white">{formatCurrency(offer.liability.price)}</span>
+                            <span className="text-[#71828a]">POV ({offer.liability.limit} mil.)</span>
+                            <span className="font-bold text-[#182d35]">{formatCurrency(offer.liability.price)}</span>
                           </div>
                         )}
                         {offer.allrisk.active && (
                           <div className="flex justify-between">
-                            <span className="text-gray-400">Havarijní</span>
-                            <span className="font-bold text-white">{formatCurrency(offer.allrisk.price)}</span>
+                            <span className="text-[#71828a]">Havarijní</span>
+                            <span className="font-bold text-[#182d35]">{formatCurrency(offer.allrisk.price)}</span>
                           </div>
                         )}
                         {moduleTypes.map((t) => {
@@ -1573,8 +1519,8 @@ LIMMIT s.r.o.`;
                           if (!m?.active) return null;
                           return (
                             <div key={t.id} className="flex justify-between">
-                              <span className="text-gray-400">{t.name}</span>
-                              <span className="font-bold text-white">{formatCurrency(m.price)}</span>
+                              <span className="text-[#71828a]">{t.name}</span>
+                              <span className="font-bold text-[#182d35]">{formatCurrency(m.price)}</span>
                             </div>
                           );
                         })}
@@ -1584,14 +1530,14 @@ LIMMIT s.r.o.`;
                 </div>
 
                 {/* Broker Info */}
-                <div className="mt-6 pt-4 border-t border-zinc-700 flex justify-between text-sm">
+                <div className="mt-6 pt-4 border-t border-[#e4e9e8] flex justify-between text-sm">
                   <div>
-                    <div className="font-bold text-white">{clientData.brokerName}</div>
-                    <div className="text-gray-400">Pojišťovací specialista</div>
+                    <div className="font-bold text-[#182d35]">{clientData.brokerName}</div>
+                    <div className="text-[#71828a]">Pojišťovací specialista</div>
                   </div>
                   <div className="text-right">
-                    <div className="text-white">{clientData.brokerPhone}</div>
-                    <div className="text-[#009ee3]">{clientData.brokerEmail}</div>
+                    <div className="text-[#182d35]">{clientData.brokerPhone}</div>
+                    <div className="text-[#147d70]">{clientData.brokerEmail}</div>
                   </div>
                 </div>
               </div>
@@ -1599,6 +1545,6 @@ LIMMIT s.r.o.`;
           </div>
         )}
       </main>
-    </div>
+    </ModuleShell>
   );
 }

@@ -1,0 +1,128 @@
+.banner {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  margin: 22px 0;
+  background: #eff5f2;
+  border: 1px solid #ccdfd3;
+  border-radius: 14px;
+  text-align: left;
+  color: #214e40;
+}
+.banner[data-pending="true"] {
+  background: #fff3d7;
+  border: 2px solid #e4b655;
+  box-shadow: 0 4px 16px #c5953020;
+}
+.banner strong {
+  display: block;
+  font-size: 18px;
+}
+.banner small {
+  display: block;
+  margin-top: 5px;
+  font-size: 12px;
+}
+.banner b {
+  margin-left: auto;
+  border-radius: 50%;
+  background: #177d6b;
+  color: white;
+  min-width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+}
+.banner[data-pending="true"] b {
+  background: #a3630a;
+}
+.icon {
+  font-size: 30px;
+}
+.content {
+  padding: 24px;
+  display: flex;
+  gap: 24px;
+}
+.list {
+  width: 34%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 65vh;
+  overflow: auto;
+}
+.list button {
+  text-align: left;
+  padding: 14px;
+  border: 1px solid #dce6df;
+  border-radius: 9px;
+}
+.list button[aria-pressed="true"] {
+  background: #e5f2eb;
+  border-color: #18806b;
+}
+.list small {
+  display: block;
+  margin-top: 6px;
+  color: #607b6c;
+}
+.detail {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  flex: 1;
+  min-width: 0;
+}
+.detail h3 {
+  font-size: 20px;
+}
+.detail p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.newProject {
+  padding: 12px;
+  background: #f2f7f3;
+  border-radius: 9px;
+  display: grid;
+  gap: 8px;
+}
+@media (max-width: 640px) {
+  .banner {
+    padding: 12px;
+    gap: 10px;
+    margin: 10px 0 12px;
+  }
+  .banner small {
+    display: none;
+  }
+  .banner .icon {
+    font-size: 22px;
+  }
+  .banner b {
+    min-width: 30px;
+    height: 30px;
+    font-size: 15px;
+  }
+  .banner > span:last-child {
+    display: none;
+  }
+  .banner strong {
+    font-size: 16px;
+  }
+  .content {
+    flex-direction: column;
+    padding: 16px;
+  }
+  .list {
+    width: 100%;
+    max-height: 180px;
+  }
+  .detail h3 {
+    font-size: 18px;
+  }
+}

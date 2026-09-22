@@ -1,0 +1,11 @@
+node_modules
+.next
+.next-verify
+.git
+.env*
+output
+tmp
+coverage
+.playwright-cli
+.vscode
+supabase/.temp

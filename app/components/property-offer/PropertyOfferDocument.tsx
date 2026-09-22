@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { LimmitLogo } from "@/lib/logo";
 
 import {
   formatCoverageLimit,
@@ -247,15 +248,7 @@ function Icon({ name, size = 18 }: { name: IconName; size?: number }) {
 
 function Brand() {
   return (
-    <div className={styles.brand} aria-label="LIMMIT">
-      <span className={styles.brandMark} aria-hidden="true">
-        <i />
-        <i />
-        <i />
-        <i />
-      </span>
-      <span className={styles.brandWord}>LIMMIT</span>
-    </div>
+    <LimmitLogo height={28} className={styles.brand} />
   );
 }
 

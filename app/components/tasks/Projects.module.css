@@ -1,0 +1,406 @@
+.projects {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  min-width: 0;
+  padding: 4px 2px 12px;
+  scrollbar-width: thin;
+  margin: 20px 0;
+}
+.projectBar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.orderToggle {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-width: 52px;
+  min-height: 56px;
+  flex: none;
+  border: 1px solid #dce6df;
+  border-radius: 10px;
+  color: #37644f;
+  background: #fff;
+}
+.orderToggle > span {
+  font-size: 22px;
+  line-height: 1.1;
+}
+.orderToggle small {
+  font-size: 10px;
+  margin-top: 4px;
+}
+.orderToggle:focus-visible,
+.orderRow button:focus-visible {
+  outline: 2px solid #177d6b;
+  outline-offset: 2px;
+}
+.orderHint {
+  margin: 0 0 20px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: #587161;
+}
+.orderList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.orderRow {
+  position: relative;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  min-height: 72px;
+  border: 1px solid #dce6df;
+  border-radius: 11px;
+  padding: 8px;
+  background: #fff;
+}
+.orderRow[data-dragging="true"] {
+  z-index: 2;
+  border-color: #177d6b;
+  box-shadow: 0 12px 25px #173c2d25;
+  background: #eff8f3;
+}
+.orderHandle {
+  touch-action: none;
+  cursor: grab;
+  min-width: 36px;
+  min-height: 48px;
+  font-size: 25px;
+  color: #799184;
+  border-radius: 7px;
+}
+.orderHandle:active {
+  cursor: grabbing;
+}
+.orderNumber {
+  color: #789082;
+  font-size: 12px;
+  min-width: 12px;
+}
+.orderColor {
+  width: 9px;
+  height: 26px;
+  border-radius: 4px;
+  flex: none;
+}
+.orderName {
+  min-width: 0;
+  flex: 1;
+}
+.orderName strong {
+  display: block;
+  font-size: 13px;
+  color: #2e503d;
+  overflow-wrap: anywhere;
+}
+.orderName small {
+  display: block;
+  font-size: 11px;
+  color: #718677;
+  margin-top: 5px;
+}
+.orderArrows {
+  display: flex;
+  gap: 4px;
+}
+.orderArrows button {
+  min-width: 40px;
+  min-height: 44px;
+  border: 1px solid #dce6df;
+  border-radius: 7px;
+  font-size: 20px;
+  color: #346850;
+  background: #f4f8f5;
+}
+.orderArrows button:disabled {
+  opacity: 0.3;
+}
+.orderNotice {
+  min-height: 20px;
+  margin: 14px 0 0;
+  font-size: 12px;
+  color: #376950;
+}
+@media (max-width: 640px) {
+  .projectBar {
+    align-items: flex-start;
+  }
+  .orderToggle {
+    margin-top: 2px;
+    min-height: 48px;
+    min-width: 48px;
+  }
+  .orderToggle > span {
+    font-size: 19px;
+  }
+  .orderToggle small {
+    margin-top: 1px;
+  }
+  .projectName .projectOwner {
+    display: block;
+  }
+  .orderRow {
+    gap: 6px;
+    padding: 6px;
+  }
+  .orderArrows {
+    gap: 4px;
+  }
+  .orderArrows button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .orderColor {
+    width: 6px;
+  }
+}
+.projects > button {
+  flex-shrink: 0;
+}
+.projectCard {
+  --project-color: #177d6b;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 66px;
+  min-width: 166px;
+  max-width: 280px;
+  padding: 12px 16px;
+  border: 1px solid #dce6df;
+  border-radius: 12px;
+  background: white;
+  color: #294c40;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.projectCard:hover:not(:disabled) {
+  border-color: var(--project-color);
+  background: #f7faf8;
+}
+.projectCard[aria-pressed="true"] {
+  border-color: var(--project-color);
+  box-shadow: inset 0 -3px var(--project-color);
+  background: color-mix(in srgb, var(--project-color) 9%, white);
+}
+.projectCard:focus-visible {
+  outline: 2px solid var(--project-color);
+  outline-offset: 2px;
+}
+.projectCard:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+.projectMark {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 9px;
+  background: var(--project-color);
+  color: white;
+  font-size: 22px;
+}
+.projectName {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.projectName strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.projectName small {
+  color: #62786e;
+  font-size: 10px;
+  font-weight: 400;
+}
+.calendar {
+  margin-top: 20px;
+  min-width: 0;
+  border: 1px solid #dce6df;
+  border-radius: 14px;
+  background: white;
+  overflow: hidden;
+}
+.members {
+  border: 1px solid #dce6df;
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+}
+.members legend {
+  font-weight: 600;
+  padding: 0 5px;
+}
+.members p {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 12px;
+  color: #62786e;
+}
+.members label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+}
+.members input {
+  accent-color: #177d6b;
+  width: 16px;
+  height: 16px;
+}
+.calendarHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  gap: 12px;
+}
+.calendarHeader h2 {
+  font-size: 19px;
+  text-transform: capitalize;
+}
+.calendarHeader button {
+  padding: 8px 12px;
+  background: #eef4f0;
+  border-radius: 6px;
+  margin-left: 5px;
+}
+.calendarGrid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+.weekday {
+  text-align: center;
+  padding: 10px;
+  background: #f3f7f4;
+  font-size: 12px;
+}
+.day {
+  min-height: 130px;
+  border-top: 1px solid #e4ece6;
+  border-right: 1px solid #e4ece6;
+  padding: 7px;
+  min-width: 0;
+}
+.day[data-outside="true"] {
+  background: #f8faf8;
+  color: #8c9c92;
+}
+.day[data-today="true"] {
+  background: #edf8f3;
+  box-shadow: inset 0 2px #19826c;
+}
+.dayHeading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+.dayHeading button {
+  width: 25px;
+  height: 25px;
+  color: #4d7965;
+}
+.calendarTask {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 6px 8px;
+  border-radius: 5px;
+  background: #e6f2ec;
+  color: #225e48;
+  font-size: 12px;
+  margin: 4px 0;
+  overflow-wrap: anywhere;
+}
+.calendarTask:hover {
+  background: #cde7da;
+}
+.undated {
+  padding: 16px;
+  border-top: 1px solid #dce6df;
+}
+.undated h3 {
+  font-size: 14px;
+}
+.undated .calendarTask {
+  display: inline-block;
+  width: auto;
+  margin-right: 8px;
+}
+@media (max-width: 640px) {
+  .projects {
+    margin: 0 0 12px;
+    padding: 2px 1px 8px;
+    gap: 8px;
+    scrollbar-width: none;
+  }
+  .projectCard {
+    min-width: auto;
+    max-width: 220px;
+    min-height: 48px;
+    padding: 9px 12px;
+    gap: 8px;
+    border-radius: 9px;
+  }
+  .projectMark {
+    width: 24px;
+    height: 24px;
+    font-size: 17px;
+    border-radius: 6px;
+  }
+  .projectName small {
+    display: none;
+  }
+  .projects button {
+    font-size: 12px;
+  }
+  .calendarHeader {
+    padding: 10px;
+  }
+  .calendarHeader h2 {
+    font-size: 16px;
+  }
+  .calendarHeader button {
+    padding: 8px;
+  }
+  .day {
+    min-height: 95px;
+    padding: 3px;
+  }
+  .calendarTask {
+    font-size: 10px;
+    padding: 4px 3px;
+  }
+  .dayHeading {
+    font-size: 11px;
+  }
+  .dayHeading button {
+    width: 20px;
+  }
+  .weekday {
+    padding: 7px 0;
+  }
+}
